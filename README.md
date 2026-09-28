@@ -7,22 +7,28 @@ DualSense controller.
   [Simon Tatham's Portable Puzzle Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/)
   plus **2048** and **Tenfold**.
 - **Alphabetical library with favorites:** every game is listed A–Z, and
-  favorites are pinned first.
-- **Console-grade presentation:** anti-aliased OpenGL 4.6 rendering, animated
-  transitions, completion celebrations, sound effects and music.
+  favorites are pinned first. Cards show a live preview of each board.
+- **Console-grade presentation:** anti-aliased OpenGL 4.6 rendering, one modern
+  skin across every puzzle, animated transitions, confetti celebrations, sound
+  effects and streamed music.
 - **Resume anywhere:** games in progress, statistics and settings persist in
   the title's `/download0` storage.
 
 ## Status
 
-Early development. See [PLAN.md](PLAN.md) for the milestones and the current
-gate.
+Feature-complete for v1 apart from the delivered audio: sound effects fall back
+to synthesized placeholders and music stays silent until the tracks in
+[PLAN.md Appendix A](PLAN.md#appendix-a-audio-asset-spec-for-your-sound-and-music-production)
+are added.
 
 | Area | Status |
 | --- | --- |
 | Build | Native C++20 pipeline from `ps5-native-app-boilerplate` |
-| Rendering | OpenGL 4.6 Core via `ps5-opengl` (M1) |
-| Games | 2048, Tenfold, and the 40 Tatham puzzles (M5–M7) |
+| Rendering | OpenGL 4.6 Core via `ps5-opengl`, 60 Hz, verified on hardware |
+| Library | A–Z grid, favorites, filters, letter jumps, board previews, details, settings |
+| Games | 2048, Tenfold, and all 40 Tatham puzzles, each with How to play |
+| Audio | Mixer, WAV cues with placeholders, OGG Vorbis music streaming |
+| Presentation | Icon and home backgrounds rendered by the app (`tools/render-art.sh`) |
 
 ## Building (Linux or WSL)
 
@@ -32,21 +38,28 @@ make test     # host unit and integration tests
 make          # build dist/<TITLE_ID>/ and the folder ZIP
 ```
 
-Useful targets: `make lint`, `make check`, `make ffpfsc`, `make help`.
-Build and deployment details are in [docs/](docs/): start with
-[GETTING_STARTED](docs/GETTING_STARTED.md),
+Useful targets: `make lint`, `make check`, `make host-snapshots`,
+`make audio-check`, `make help`. Build and deployment details are in
+[docs/](docs/): start with [GETTING_STARTED](docs/GETTING_STARTED.md),
 [DEPLOYMENT](docs/DEPLOYMENT.md) and [ARCHITECTURE](docs/ARCHITECTURE.md).
 
 ## Controls
 
 | Button | Library | In a game |
 | --- | --- | --- |
-| D-pad / left stick | Move between games | Move the cursor (stick: pointer) |
+| D-pad / left stick | Move between games | Move the cursor (stick: free pointer) |
 | Cross | Play or resume | Primary action |
 | Square | Toggle favorite | Secondary action |
 | Triangle | Game details | Key palette (numbers, letters, colours) |
 | L1 / R1 | Filter | Undo / redo |
-| Options | Settings | Pause |
+| L2 / R2 | Jump to the previous / next letter (wraps) | — |
+| Options | Settings | Pause (How to play, new game, restart, solve) |
+
+## Audio assets
+
+Put sound effects in `assets/audio/sfx/` and music in `assets/audio/music/`,
+named as in PLAN.md Appendix A, then run `make audio-check`. Missing effects use
+synthesized placeholders; missing music is silent.
 
 ## License
 
