@@ -2,15 +2,22 @@
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// M1 bring-up: opens the OpenGL 4.6 display, presents an animated test pattern
-// every frame, and logs the lifecycle markers and frame pacing that the first
-// hardware runs use as their oracle.
+// Bring-up diagnostics (M1/M2): presents an animated test pattern with a live
+// button strip, plays a cue for every button press, keeps a persisted boot
+// counter, generates each Tatham puzzle once, and logs lifecycle markers,
+// frame pacing and audio health as the hardware runs' oracles.
 
+#include "audio/cues.hpp"
+#include "audio/mixer.hpp"
 #include "core/frame_stats.hpp"
+#include "core/input.hpp"
+#include "core/save_file.hpp"
 #include "games/sgt/sgt_catalog.hpp"
 #include "games/sgt/sgt_session.hpp"
 #include "gfx/gl_program.hpp"
+#include "platform/ps5/audio_out.hpp"
 #include "platform/ps5/display_egl.hpp"
+#include "platform/ps5/pad.hpp"
 #include "platform/ps5/system.hpp"
 
 #include <GL/glcorearb.h>
@@ -18,6 +25,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <span>
+#include <string>
 
 extern "C" void ppz_heap_stats(std::size_t *live_bytes, std::size_t *peak_bytes,
                                std::size_t *blocks, std::size_t *failures);
@@ -72,7 +81,8 @@ class TestPattern
         return true;
     }
 
-    void draw(double seconds, int width, int height)
+    // held: logical action bits; each lights one cell of the button strip.
+    void draw(double seconds, int width, int height, std::uint32_t held)
     {
         const float scale = static_cast<float>(height) / 1080.0f;
         glViewport(0, 0, width, height);
@@ -92,6 +102,15 @@ class TestPattern
         const float sweep = static_cast<float>(seconds - std::floor(seconds));
         rect(640, 760, 640, 24, 12, 0.78f, 0.76f, 0.72f, 1.0f, scale);
         rect(640, 760, 24.0f + 616.0f * sweep, 24, 12, 0.18f, 0.55f, 0.95f, 1.0f, scale);
+        // Button strip: one cell per logical action, lit while held.
+        const int count = static_cast<int>(ppz::Action::count);
+        for (int index = 0; index < count; ++index)
+        {
+            const bool lit = (held & (1u << static_cast<unsigned>(index))) != 0;
+            const float cell_x = 600.0f + static_cast<float>(index) * 45.0f;
+            rect(cell_x, 900, 36, 36, 8, lit ? 0.35f : 0.18f, lit ? 0.85f : 0.22f,
+                 lit ? 0.45f : 0.30f, 1.0f, scale);
+        }
     }
 
   private:
@@ -119,12 +138,80 @@ void log_heap(std::uint64_t frames)
                   static_cast<unsigned long long>(frames), live, peak, blocks, failures);
 }
 
+constexpr const char *kActionNames[] = {
+    "up",        "down",      "left",      "right",     "confirm", "back",  "north", "west",
+    "page_prev", "page_next", "jump_prev", "jump_next", "menu",    "touch", "l3",    "r3"};
+static_assert(sizeof(kActionNames) / sizeof(kActionNames[0]) ==
+              static_cast<std::size_t>(ppz::Action::count));
+
+ppz::audio::Cue cue_for(ppz::Action action)
+{
+    using ppz::Action;
+    using ppz::audio::Cue;
+    switch (action)
+    {
+    case Action::confirm:
+        return Cue::ui_select;
+    case Action::back:
+        return Cue::ui_back;
+    case Action::north:
+        return Cue::ui_favorite_on;
+    case Action::west:
+        return Cue::place;
+    case Action::page_prev:
+    case Action::page_next:
+    case Action::jump_prev:
+    case Action::jump_next:
+        return Cue::ui_tab;
+    case Action::menu:
+        return Cue::ui_pause_open;
+    case Action::touch:
+        return Cue::complete;
+    default:
+        return Cue::ui_focus;
+    }
+}
+
+// Persisted boot counter: the hardware run's storage oracle.
+unsigned boot_count(const std::string &root)
+{
+    const std::string path = root + "/boot.bin";
+    std::string data;
+    unsigned count = 0;
+    if (ppz::save::read_file(path, &data))
+    {
+        const auto decoded = ppz::save::decode(ppz::save::Kind::stats, data);
+        if (decoded.ok && decoded.payload.size() == 4)
+        {
+            for (int i = 3; i >= 0; --i)
+                count = (count << 8) |
+                        static_cast<unsigned char>(decoded.payload[static_cast<std::size_t>(i)]);
+        }
+        else
+        {
+            ppz::sys::log("[PPZ] boot counter unreadable: %s", decoded.error.c_str());
+        }
+    }
+    ++count;
+    std::string payload(4, '\0');
+    for (int i = 0; i < 4; ++i)
+        payload[static_cast<std::size_t>(i)] = static_cast<char>((count >> (8 * i)) & 0xff);
+    const std::string error =
+        ppz::save::write_atomic(path, ppz::save::encode(ppz::save::Kind::stats, 1, payload));
+    ppz::sys::log("[PPZ] boot count=%u saved=%s", count, error.empty() ? "ok" : error.c_str());
+    return count;
+}
+
 } // namespace
 
 int main()
 {
     using namespace ppz;
     sys::log("[PPZ] entry");
+
+    const std::string data_root = "/download0/prosperopuzzles";
+    sys::log("[PPZ] storage dir=%d", save::ensure_directory(data_root) ? 1 : 0);
+    boot_count(data_root);
 
     ps5::Display display;
     if (!display.open())
@@ -139,16 +226,44 @@ int main()
         sys::park();
     }
 
+    ps5::Pad pad;
+    pad.open();
+    InputTracker tracker;
+    audio::Mixer mixer;
+    ps5::AudioOut audio_out;
+    audio_out.start(mixer);
+    audio::SoundBank sounds;
+    const auto bank = sounds.load("/app0/assets/audio/sfx");
+    sys::log("[PPZ] sounds files=%d rejected=%d", bank.files, bank.rejected);
+    for (const std::string &error : bank.errors)
+        sys::log("[PPZ] sound rejected %s", error.c_str());
+
     const std::int64_t start = sys::monotonic_us();
     std::int64_t previous = start;
     std::uint64_t frames = 0;
     FrameStats stats;
     const auto games = sgt::catalog();
     std::size_t next_game = 0;
+    PadSample samples[64];
     for (;;)
     {
         const std::int64_t now = sys::monotonic_us();
-        pattern.draw(static_cast<double>(now - start) / 1e6, display.width(), display.height());
+        const std::size_t count = pad.read(samples);
+        const InputFrame input = tracker.update(std::span<const PadSample>(samples, count),
+                                                static_cast<std::uint64_t>(now));
+        for (std::size_t index = 0; index < static_cast<std::size_t>(Action::count); ++index)
+        {
+            const auto action = static_cast<Action>(index);
+            if (input.is_pressed(action))
+            {
+                sys::log("[PPZ] input pressed=%s", kActionNames[index]);
+                sounds.play(mixer, cue_for(action));
+            }
+        }
+        if (input.focus_lost)
+            sys::log("[PPZ] input focus lost connected=%d", input.connected ? 1 : 0);
+        pattern.draw(static_cast<double>(now - start) / 1e6, display.width(), display.height(),
+                     input.held);
         if (!display.swap())
         {
             sys::log("[PPZ] fatal: swap failed frame=%llu error=%s",
@@ -193,6 +308,9 @@ int main()
             char summary[160];
             stats.format(summary, sizeof(summary));
             sys::log("[PPZ] %s", summary);
+            sys::log("[PPZ] audio grains=%llu errors=%llu voices=%d",
+                     static_cast<unsigned long long>(audio_out.grains()),
+                     static_cast<unsigned long long>(audio_out.errors()), mixer.active_voices());
             stats.reset();
             if (frames % 3600 < 600)
                 log_heap(frames);
