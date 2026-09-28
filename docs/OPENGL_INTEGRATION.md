@@ -16,8 +16,25 @@ can be re-checked when the boilerplate or the SDK is updated.
 | Override | `make PS5_OPENGL_PREFIX=<dir containing manifest.sha256>` |
 
 The v0.3.0 release notes state that its binaries are host-checked, not
-console-validated. The first hardware runs (PLAN.md, M1) decide which SDK the
-project pins.
+console-validated, and its presentation path predates ps5-opengl `7d7fecb`
+("register only scanout storage", 2026-09-23). The pre-fix code is the likely
+cause of the first-swap `EGL_BAD_SURFACE` seen in an earlier app. v0.3.0 is
+therefore only used for CI compile and link checks.
+
+Console builds use the **C91** SDK until a newer published release carries the
+fix. C91 was built from ps5-opengl 2026-09-24 sources (with `7d7fecb`), and it
+presented frames on firmware 6.02 in repeated native and Eden runs:
+
+| Setting | Value |
+| --- | --- |
+| `manifest.sha256` SHA-256 | `eb35893107a654d3d2cd4d0a74161e13513c515854a5bfddecbb42edbcaeb5fc` |
+| `libps5_opengl_core33.a` SHA-256 | `202208d091a58366d40a6a9a99de47c507788eaf01363a709210e8dac786336b` |
+| Display profile | 1920×1080 at 60 Hz |
+| Selection | `PS5_OPENGL_PREFIX=<path to the C91 SDK>` in the ignored `.env` |
+
+Every console presentation recorded with C91 used a compatibility or 3.3
+context and `eglSwapInterval(0)`; this app's GL 4.6 Core context with swap
+interval 1 is verified by its own first hardware run (PLAN.md, M1).
 
 `tools/prepare-opengl.sh` verifies the selected SDK's manifest, points
 `.deps/ps5-opengl/current` at it, and writes the linker group
