@@ -9,7 +9,7 @@ page records the durable structure as it lands.
 - Created from the `ps5-native-app-boilerplate` template at
   `4f531c4b517f80bcb6b1267135848168d2250047` (2026-09-27, "Speed up native
   builds with Ninja and ccache; package app folder ZIP").
-- Development title `PPSA99031`; the release title is `PPSA99030`.
+- Title `PPSA99006` for both console testing and releases.
 
 ## Layers
 

@@ -4,6 +4,7 @@
 
 - Created the project from `ps5-native-app-boilerplate` at `4f531c4`.
 - Configured the development identity `PPSA99031`.
+- Adopted the final title `PPSA99006`.
 - OpenGL 4.6 presentation, DualSense input and `sceAudioOut` audio on hardware.
 - Library: A–Z grid with favorites, filters (L1/R1), wrapping letter jumps
   (L2/R2), live board previews, a details menu and a settings screen.

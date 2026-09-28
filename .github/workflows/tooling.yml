@@ -1,4 +1,4 @@
-# ps5-native-app-boilerplate - Lint, build, and release validation.
+# ProsperoPuzzles - Lint, test, build, and publish a release for each new version.
 # Copyright (C) 2026 BlackBearReloaded
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -24,6 +24,9 @@ jobs:
   build:
     name: Lint, build, and package
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
     timeout-minutes: 45
     env:
       CCACHE_DIR: ${{ github.workspace }}/.deps/ccache
@@ -69,6 +72,7 @@ jobs:
           ccache --zero-stats
 
       - name: Read app identity and version
+        id: version
         shell: bash
         run: |
           metadata=$(python3 -c 'import json; p=json.load(open("sce_sys/param.json")); print(p["titleId"], p["contentVersion"])')
@@ -81,6 +85,18 @@ jobs:
           fi
           echo "TITLE_ID=$title_id" >> "$GITHUB_ENV"
           echo "CONTENT_VERSION=$content_version" >> "$GITHUB_ENV"
+          # A push to main releases param.json's version once: when no tag for
+          # it exists yet. Bump contentVersion to publish the next release.
+          release=false
+          if [[ $GITHUB_REF_TYPE == tag ]]; then
+            release=true
+          elif [[ $GITHUB_EVENT_NAME == push && $GITHUB_REF == refs/heads/main ]] &&
+               ! git ls-remote --exit-code --tags origin "refs/tags/$content_version" >/dev/null; then
+            release=true
+          fi
+          echo "version=$content_version" >> "$GITHUB_OUTPUT"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Release this build: $release ($content_version)"
 
       - name: Lint source and metadata
         run: make lint
@@ -121,7 +137,7 @@ jobs:
 
   release:
     name: GitHub release
-    if: github.ref_type == 'tag'
+    if: needs.build.outputs.release == 'true'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -165,6 +181,7 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
           IMAGE: ${{ steps.package.outputs.image }}
           FOLDER_ZIP: ${{ steps.package.outputs.folder_zip }}
           CHECKSUM: ${{ steps.package.outputs.checksum }}
@@ -175,17 +192,18 @@ jobs:
           image_name="${IMAGE##*/}"
           folder_zip_name="${FOLDER_ZIP##*/}"
           checksum_name="${CHECKSUM##*/}"
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             while IFS= read -r old_asset; do
               if [[ $old_asset != "$image_name" && $old_asset != "$folder_zip_name" && $old_asset != "$checksum_name" ]]; then
-                gh release delete-asset "$GITHUB_REF_NAME" "$old_asset" --yes --repo "$GITHUB_REPOSITORY"
+                gh release delete-asset "$VERSION" "$old_asset" --yes --repo "$GITHUB_REPOSITORY"
               fi
-            done < <(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
-            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+            done < <(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+            gh release upload "$VERSION" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            # Creates the version tag at the commit that was just built and tested.
+            gh release create "$VERSION" "${assets[@]}" \
               --repo "$GITHUB_REPOSITORY" \
-              --verify-tag \
+              --target "$GITHUB_SHA" \
               --generate-notes \
-              --title "ProsperoPuzzles $GITHUB_REF_NAME"
+              --title "ProsperoPuzzles $VERSION"
           fi

@@ -12,7 +12,7 @@
 
 TEST(Version, ReadsContentVersion)
 {
-    EXPECT_EQ(ppz::content_version(R"({"titleId": "PPSA99031", "contentVersion": "01.002.030"})"),
+    EXPECT_EQ(ppz::content_version(R"({"titleId": "PPSA99006", "contentVersion": "01.002.030"})"),
               "01.002.030");
     EXPECT_EQ(ppz::content_version(R"({"contentVersion":"12.345.678","x":1})"), "12.345.678");
 }
