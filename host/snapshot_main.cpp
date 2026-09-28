@@ -11,6 +11,7 @@
 #include "gfx/font.hpp"
 #include "gfx/gl_batch.hpp"
 #include "gfx/gl_program.hpp"
+#include "app/thumbnails.hpp"
 #include "core/library.hpp"
 #include "games/registry.hpp"
 #include "games/sgt/sgt_catalog.hpp"
@@ -151,6 +152,12 @@ int main(int argc, char **argv)
     library.toggle_favorite("g2048");
     library.set_in_progress("mines", true);
     ppz::ui::LibraryScene scene(library);
+    ppz::app::Thumbnails thumbnails(batch, fonts, 1.0f);
+    for (const auto &game : ppz::games::all())
+        thumbnails.request(game.id, {});
+    thumbnails.pump(64);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    scene.set_thumbnails(&thumbnails);
     std::vector<ppz::audio::Cue> cues;
     ppz::InputFrame idle;
     ppz::InputFrame right;

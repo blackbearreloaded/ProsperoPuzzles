@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "app/thumbnails.hpp"
 #include "audio/cues.hpp"
 #include "core/input.hpp"
 #include "core/library.hpp"
@@ -89,6 +90,7 @@ class Shell
     bool settings_changed_ = true;
     ui::SettingsScene settings_scene_{settings_};
     ui::Menu details_;
+    Thumbnails thumbnails_{batch_, fonts_, surface_scale_};
     std::string details_id_;
 };
 

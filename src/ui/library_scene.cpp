@@ -284,15 +284,28 @@ void LibraryScene::draw_card(gfx::DrawList &list, const Fonts &fonts, const Cell
     const gfx::Rect panel{x + 18, y + 18, kCardW - 36, 150};
     list.gradient_rect(panel, 18, accent,
                        Color{accent.r * 0.82f, accent.g * 0.82f, accent.b * 0.82f, 1.0f});
+    std::uint32_t texture = 0;
+    float thumb_w = 0.0f;
+    float thumb_h = 0.0f;
+    if (thumbnails_ != nullptr && thumbnails_->thumbnail(entry.id, &texture, &thumb_w, &thumb_h))
+    {
+        // A real board, centred on a soft paper mat inside the accent panel.
+        const float tx = panel.x + (panel.w - thumb_w) * 0.5f;
+        const float ty = panel.y + (panel.h - thumb_h) * 0.5f;
+        list.rounded_rect({tx - 5, ty - 5, thumb_w + 10, thumb_h + 10}, 8,
+                          Color::rgb(0xffffff, 0.55f));
+        list.image(texture, {tx, ty, thumb_w, thumb_h}, {0.0f, 1.0f, 1.0f, -1.0f},
+                   Color{1, 1, 1, 1});
+    }
     const std::uint32_t seed = hash(entry.id);
-    const int columns = 4 + static_cast<int>(seed % 2);
+    const int columns = texture != 0 ? 0 : 4 + static_cast<int>(seed % 2);
     const int rows = 3;
     const float gap = 7.0f;
     const float tile_w =
         (panel.w - 36.0f - gap * static_cast<float>(columns - 1)) / static_cast<float>(columns);
     const float tile_h =
         (panel.h - 30.0f - gap * static_cast<float>(rows - 1)) / static_cast<float>(rows);
-    for (int r = 0; r < rows; ++r)
+    for (int r = 0; r < rows && columns > 0; ++r)
     {
         for (int c = 0; c < columns; ++c)
         {

@@ -54,15 +54,21 @@ Shell::Shell(gfx::GlBatch &batch, const ui::Fonts &fonts, float surface_scale,
             sys::log("[PPZ] settings.bin ignored: %s", decoded.error.c_str());
     }
     library_scene_.reduced_motion = settings_.reduced_motion;
+    library_scene_.set_thumbnails(&thumbnails_);
     int resumable = 0;
     for (const games::GameInfo &game : games::all())
     {
-        std::string ignored;
-        if (save::read_file(game_path(game.id), &ignored))
+        std::string data_file;
+        std::string payload;
+        if (save::read_file(game_path(game.id), &data_file))
         {
             library_.set_in_progress(game.id, true);
             ++resumable;
+            const auto decoded = save::decode(save::Kind::game, data_file);
+            if (decoded.ok)
+                payload = decoded.payload;
         }
+        thumbnails_.request(game.id, payload);
     }
     sys::log("[PPZ] library games=%zu favorites_loaded resumable=%d", library_.entries().size(),
              resumable);
@@ -100,7 +106,9 @@ void Shell::save_game()
         if (!error.empty())
             sys::log("[PPZ] stats save failed %s: %s", id.c_str(), error.c_str());
     }
-    if (game_->in_progress())
+    const bool keep = game_->in_progress();
+    thumbnails_.request(id, keep ? game_->save() : std::string());
+    if (keep)
     {
         const std::string error = save::write_atomic(
             game_path(id), save::encode(save::Kind::game, kGameVersion, game_->save()));

@@ -31,10 +31,28 @@ struct LibraryRequest
     std::string game_id;
 };
 
+// Supplies card previews (rendered boards). Implemented by the shell.
+class ThumbnailSource
+{
+  public:
+    virtual ~ThumbnailSource() = default;
+    // Returns false if no preview is ready. texture is sampled with v flipped.
+    virtual bool thumbnail(const std::string &id, std::uint32_t *texture, float *width,
+                           float *height) const = 0;
+};
+
+// Card preview area in virtual pixels (thumbnails are rendered to fit it).
+constexpr float kThumbnailWidth = 218.0f;
+constexpr float kThumbnailHeight = 150.0f;
+
 class LibraryScene
 {
   public:
     static constexpr int kColumns = 6;
+    void set_thumbnails(const ThumbnailSource *source)
+    {
+        thumbnails_ = source;
+    }
 
     explicit LibraryScene(Library &library);
 
@@ -70,6 +88,7 @@ class LibraryScene
     void draw_card(gfx::DrawList &list, const Fonts &fonts, const Cell &cell) const;
 
     Library &library_;
+    const ThumbnailSource *thumbnails_ = nullptr;
     std::vector<Cell> cells_;
     std::vector<Header> headers_;
     int rows_ = 0;
