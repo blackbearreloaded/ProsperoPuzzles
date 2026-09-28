@@ -30,6 +30,12 @@ The baker uses [stb_truetype](https://github.com/nothings/stb)
 (`third_party/stb/stb_truetype.h`, public domain or MIT). It is a host-only
 tool and is not linked into the PS5 application.
 
+## Sound effects
+
+`assets/audio/sfx/*.wav` were generated for this project with ElevenLabs Sound
+Effects v2 (the prompts follow PLAN.md Appendix A) and prepared with
+`tools/process-sfx.py`: trimmed, faded and levelled to the Appendix A spec.
+
 ## Music decoding
 
 Music is decoded by [stb_vorbis](https://github.com/nothings/stb) (public
