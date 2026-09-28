@@ -101,12 +101,14 @@ done
 definitions=()
 includes=()
 archives=()
+import_stubs=()
 pacbrew_packages=()
 pacbrew_includes=()
 pacbrew_archives=()
 [[ -z ${APP_DEFINITIONS:-} ]] || read -r -a definitions <<< "$APP_DEFINITIONS"
 [[ -z ${APP_INCLUDE_PATHS:-} ]] || read -r -a includes <<< "$APP_INCLUDE_PATHS"
 [[ -z ${APP_STATIC_ARCHIVES:-} ]] || read -r -a archives <<< "$APP_STATIC_ARCHIVES"
+[[ -z ${APP_IMPORT_STUBS:-} ]] || read -r -a import_stubs <<< "$APP_IMPORT_STUBS"
 [[ -z ${PACBREW_PACKAGES:-} ]] || read -r -a pacbrew_packages <<< "$PACBREW_PACKAGES"
 [[ -z ${PACBREW_INCLUDE_PATHS:-} ]] || read -r -a pacbrew_includes <<< "$PACBREW_INCLUDE_PATHS"
 [[ -z ${PACBREW_STATIC_ARCHIVES:-} ]] || read -r -a pacbrew_archives <<< "$PACBREW_STATIC_ARCHIVES"
@@ -151,6 +153,8 @@ for source in "${sources[@]}"; do
     if [[ $source == *.c ]]; then standard=-std=c11; else standard=-std=c++20; fi
     args=("$standard" -O2 -Wall -Wextra -ffunction-sections -fdata-sections)
     [[ $source == *.c ]] || args+=(-fno-exceptions -fno-rtti)
+    # Vendored upstream code is built as published; its warnings are not ours to fix.
+    [[ $source != src/third_party/* ]] || args+=(-w)
     for definition in "${definitions[@]}"; do
         [[ $definition =~ ^[A-Za-z_][A-Za-z0-9_]*(=[A-Za-z0-9_]+)?$ ]] || {
             echo "invalid compile definition: $definition" >&2; exit 2;
@@ -193,8 +197,26 @@ done
 if (( ${#pacbrew_libs[@]} > 0 )); then
     link_inputs+=(--start-group "${pacbrew_libs[@]}" --end-group)
 fi
+# Extra import libraries (for example the OpenGL SDK's AGC stubs) are linked like
+# SDK stubs and handed to the converter so their imports resolve to modules.
+stub_paths=()
+stub_options=()
+for stub in "${import_stubs[@]}"; do
+    [[ $stub =~ ^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*\.so$ && -f $root/$stub ]] || {
+        echo "invalid import stub: $stub" >&2; exit 2;
+    }
+    stub_paths+=("$root/$stub")
+    stub_options+=(--stub "$root/$stub")
+done
+# The OpenGL runtime needs the process-lifetime heap in src/runtime/app_heap.c.
+wrap_options=()
+if [[ -f $root/src/runtime/app_heap.c ]]; then
+    for symbol in malloc calloc realloc free posix_memalign malloc_usable_size; do
+        wrap_options+=("--wrap=$symbol")
+    done
+fi
 ninja_inputs=("$native/ps5-pie.ld" "$native/app-symbols.map" "$sdk_root/bin/prospero-lld")
-for input in "${link_inputs[@]}" "$sdk_root"/target/lib/*.so; do
+for input in "${link_inputs[@]}" "${stub_paths[@]}" "$sdk_root"/target/lib/*.so; do
     [[ $input == -* ]] || ninja_inputs+=("$input")
 done
 if [[ -n ${pacbrew_root:-} ]]; then
@@ -203,13 +225,14 @@ if [[ -n ${pacbrew_root:-} ]]; then
         ninja_inputs+=("$input")
     done < <(find "$pacbrew_root" -type f \( -name '*.a' -o -name '*.so' \) -print0 | sort -z)
 fi
-ninja_edge LINK "$build/llvm-pie.elf" "$sdk_root/bin/prospero-lld" -T "$native/ps5-pie.ld" --eh-frame-hdr \
+ninja_edge LINK "$build/llvm-pie.elf" "$sdk_root/bin/prospero-lld" \
+    -T "$native/ps5-pie.ld" --eh-frame-hdr "${wrap_options[@]}" \
     --version-script "$native/app-symbols.map" \
     -e _start -o "$build/llvm-pie.elf" "${link_inputs[@]}" \
-    --as-needed "$sdk_root"/target/lib/*.so
-ninja_inputs=("$build/llvm-pie.elf" "$tool" "$sdk_root"/target/lib/*.so)
+    --as-needed "${stub_paths[@]}" "$sdk_root"/target/lib/*.so
+ninja_inputs=("$build/llvm-pie.elf" "$tool" "${stub_paths[@]}" "$sdk_root"/target/lib/*.so)
 ninja_edge CONVERT "$build/eboot.elf" "$tool" link --in "$build/llvm-pie.elf" --out "$build/eboot.elf" \
-    --stub-dir "$sdk_root/target/lib" --module-sdk "$module_sdk" \
+    "${stub_options[@]}" --stub-dir "$sdk_root/target/lib" --module-sdk "$module_sdk" \
     --companion-sdk "$companion_sdk" --file-name eboot.elf
 ninja_run
 

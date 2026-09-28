@@ -327,7 +327,9 @@ ParameterBlocks build_parameter_blocks()
         if (counts[i] != 0)
             write_u64(result.data, result.offsets[i] + 8, counts[i]);
     }
-    write_u64(result.data, result.heap_size, std::numeric_limits<std::uint64_t>::max());
+    // ProsperoPuzzles: the OpenGL runtime needs a bounded 256 MiB process heap
+    // (ps5-opengl native-app recipe); the boilerplate default is unbounded.
+    write_u64(result.data, result.heap_size, 0x10000000ULL);
     write_u32(result.data, result.heap_extended, 1);
     return result;
 }

@@ -24,11 +24,16 @@ mapfile -d '' host_sources < <(find "$root/tooling/native" -maxdepth 1 \
     -std=c++20 -I"$zlib"
 
 gtest=$(bash "$root/tools/setup-test-dependencies.sh")
-mapfile -d '' test_sources < <(find "$root/tests" -maxdepth 1 -type f -name '*.cpp' -print0)
+mapfile -d '' test_sources < <(find "$root/tests" -type f -name '*.cpp' -print0)
 if (( ${#test_sources[@]} )); then
     "$tidy" "${test_sources[@]}" --quiet --warnings-as-errors='*' -- \
-        -std=c++20 -I"$root/src" -isystem "$gtest/googletest/include"
+        -std=c++20 -DCOMBINED -I"$root/src" -I"$root/tests" \
+        -I"$root/src/third_party/sgt-puzzles" -isystem "$gtest/googletest/include"
 fi
+
+# The application headers include the ps5-opengl SDK's EGL/GL headers.
+bash "$root/tools/prepare-opengl.sh" >/dev/null
+opengl="$root/.deps/ps5-opengl/current/include"
 
 # Vendored upstream code under src/third_party is excluded from the analyzer profile.
 mapfile -d '' app_c_sources < <(find "$root/src" -path "$root/src/third_party" -prune \
@@ -44,5 +49,7 @@ app_cpp_sources+=("$root/tooling/native/app_crt.cpp" "$root/tooling/native/app_c
 if (( ${#app_cpp_sources[@]} )); then
     "$tidy" "${app_cpp_sources[@]}" --quiet --warnings-as-errors='*' -- \
         -std=c++20 -fno-exceptions -fno-rtti --target=x86_64-sie-ps5 \
+        -DGL_GLEXT_PROTOTYPES=1 -DCOMBINED -I"$root/src" \
+        -I"$root/src/third_party/sgt-puzzles" -isystem "$opengl" \
         -isystem "$sdk/target/include/c++/v1" -isystem "$sdk/target/include"
 fi

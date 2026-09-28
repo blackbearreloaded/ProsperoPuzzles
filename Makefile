@@ -10,7 +10,18 @@ SHELL := /bin/bash
 APP_DEFINITIONS ?=
 APP_INCLUDE_PATHS ?=
 APP_STATIC_ARCHIVES ?=
+APP_IMPORT_STUBS ?=
 APP_RUNTIME_MODULES ?=
+# Empty selects the pinned ps5-opengl release (tools/fetch-opengl-sdk.sh).
+PS5_OPENGL_PREFIX ?=
+
+# ProsperoPuzzles always builds against ps5-opengl; user APP_* values append.
+OPENGL_SDK := .deps/ps5-opengl/current
+override APP_DEFINITIONS := $(strip GL_GLEXT_PROTOTYPES=1 $(APP_DEFINITIONS))
+override APP_INCLUDE_PATHS := $(strip src $(OPENGL_SDK)/include $(APP_INCLUDE_PATHS))
+override APP_STATIC_ARCHIVES := $(strip .deps/ps5-opengl/libps5opengl-group.a $(APP_STATIC_ARCHIVES))
+override APP_IMPORT_STUBS := $(strip $(OPENGL_SDK)/lib/libSceAgc.so \
+	$(OPENGL_SDK)/lib/libSceAgcDriver.so $(APP_IMPORT_STUBS))
 PACBREW_PACKAGES ?=
 PACBREW_INCLUDE_PATHS ?=
 PACBREW_STATIC_ARCHIVES ?=
@@ -33,7 +44,8 @@ BUILD_JOBS ?= $(shell nproc 2>/dev/null || echo 2)
 USE_CCACHE ?= 1
 export BUILD_JOBS USE_CCACHE
 export HOST_CXX HOST_TEST_CXXFLAGS HOST_TEST_LDFLAGS
-export APP_DEFINITIONS APP_INCLUDE_PATHS APP_STATIC_ARCHIVES APP_RUNTIME_MODULES
+export APP_DEFINITIONS APP_INCLUDE_PATHS APP_STATIC_ARCHIVES APP_IMPORT_STUBS APP_RUNTIME_MODULES
+export PS5_OPENGL_PREFIX
 export PACBREW_PACKAGES PACBREW_INCLUDE_PATHS PACBREW_STATIC_ARCHIVES
 export PS5_HOST FTP_PORT DEPLOY_FORMAT PS5_FTP_USER PS5_FTP_PASSWORD DEPLOY_DRY_RUN
 export TITLE_ID APP_NAME APP_CATEGORY CONTENT_SUFFIX
@@ -42,9 +54,9 @@ RUNTIME := runtime/libc.prx
 RUNTIME_INPUTS := tools/rebuild-libc.sh tools/build-host-tools.sh tools/ninja-build.sh \
 	$(wildcard tooling/native/*.cpp tooling/native/*.hpp) \
 	$(wildcard tooling/native/runtime/*.txt)
-HOST_UNIT_TEST := build/tests/demo_renderer_tests
+HOST_UNIT_TEST := build/tests/unit_tests
 
-.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
+.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps opengl pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
 
 all: app
 build: app
@@ -66,7 +78,8 @@ test-deps:
 test-unit:
 	@bash tools/build-tests.sh
 	@printf '%s\n' '==> [test-unit] Running host-native GoogleTest application tests'
-	@$(HOST_UNIT_TEST) $(GTEST_ARGS)
+	@ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+		$(HOST_UNIT_TEST) $(GTEST_ARGS)
 
 test-integration:
 	@printf '%s\n' '==> [test-integration] Running host tooling integration tests'
@@ -76,6 +89,11 @@ deps: test-deps
 	@printf '%s\n' '==> [deps] Fetching declared native dependencies'
 	@bash tools/setup-native-dependencies.sh
 	@bash tools/setup-pacbrew-dependencies.sh --environment
+	@bash tools/prepare-opengl.sh
+
+opengl:
+	@printf '%s\n' '==> [opengl] Preparing the ps5-opengl SDK link group'
+	@bash tools/prepare-opengl.sh
 
 pacbrew:
 	@printf '%s\n' '==> [pacbrew] Fetching the pinned prebuilt ports sysroot'
@@ -97,19 +115,19 @@ $(RUNTIME): $(RUNTIME_INPUTS)
 	@printf '%s\n' '==> [libc] Generating the missing or outdated runtime'
 	@bash tools/rebuild-libc.sh
 
-app: $(RUNTIME)
+app: $(RUNTIME) opengl
 	@printf '%s\n' '==> [app] Compiling, linking, signing, and assembling the app folder'
 	@bash tools/build.sh Folder
 
-ffpkg: $(RUNTIME)
+ffpkg: $(RUNTIME) opengl
 	@printf '%s\n' '==> [ffpkg] Building the app folder and UFS2 image'
 	@bash tools/build.sh Ffpkg
 
-ffpfsc: $(RUNTIME)
+ffpfsc: $(RUNTIME) opengl
 	@printf '%s\n' '==> [ffpfsc] Building the app folder and compressed image'
 	@bash tools/build.sh Ffpfsc
 
-packages: $(RUNTIME)
+packages: $(RUNTIME) opengl
 	@printf '%s\n' '==> [packages] Building the app folder and both package formats'
 	@bash tools/build.sh All
 
@@ -150,7 +168,8 @@ distclean: clean
 
 help:
 	@printf '%s\n' \
-	  'make                 Generate libc.prx and build the Hello World folder' \
+	  'make                 Generate libc.prx and build the ProsperoPuzzles folder' \
+	  'make opengl          Fetch/verify the ps5-opengl SDK and write its link group' \
 	  'make init TITLE_ID=PPSA12345 APP_NAME="My App"  Configure app identity' \
 	  'make doctor          Check required and optional Linux/WSL tools' \
 	  'make test            Run all host unit and integration tests' \
@@ -172,7 +191,8 @@ help:
 	  'make packages        Build folder, .ffpkg, and .ffpfsc outputs' \
 	  'make deploy PS5_HOST=<address>  Build and FTP-deploy the app folder' \
 	  'make undeploy PS5_HOST=<address>  Remove this title from /data/homebrew' \
-	  'Build variables:     APP_DEFINITIONS, APP_INCLUDE_PATHS, APP_STATIC_ARCHIVES, APP_RUNTIME_MODULES' \
+	  'Build variables:     APP_DEFINITIONS, APP_INCLUDE_PATHS, APP_STATIC_ARCHIVES, APP_IMPORT_STUBS, APP_RUNTIME_MODULES' \
+	  'OpenGL SDK:          PS5_OPENGL_PREFIX=<sdk dir with manifest.sha256> (default: pinned release)' \
 	  'PacBrew variables:   PACBREW_PACKAGES, PACBREW_INCLUDE_PATHS, PACBREW_STATIC_ARCHIVES' \
 	  'Deploy variables:    FTP_PORT=2121, DEPLOY_FORMAT=folder|ffpfsc|ffpkg, DEPLOY_DRY_RUN=0|1' \
 	  'Local defaults:      Copy .env.example to the ignored .env file' \

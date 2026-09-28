@@ -1,30 +1,60 @@
 #!/usr/bin/env bash
-# ps5-native-app-boilerplate - Incremental host GoogleTest compilation.
+# ProsperoPuzzles - Incremental host GoogleTest compilation.
 # Copyright (C) 2026 BlackBearReloaded
 # SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Builds build/tests/unit_tests from tests/unit/*_test.cpp plus the
+# platform-neutral application sources listed in tests/unit/sources.txt.
 
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source "$root/tools/ninja-build.sh"
 gtest=$(bash "$root/tools/setup-test-dependencies.sh")
 cxx=$(command -v "${HOST_CXX:-clang++}")
+cc=$(command -v "${HOST_CC:-clang}")
 build="$root/build/tests"
 ninja_begin "$build/build.ninja"
 read -r -a flags <<< "${HOST_TEST_CXXFLAGS:--std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -ffunction-sections -fdata-sections}"
 read -r -a ldflags <<< "${HOST_TEST_LDFLAGS:--Wl,--gc-sections}"
+read -r -a sanitizers <<< "${HOST_TEST_SANITIZERS:--fsanitize=address,undefined -fno-omit-frame-pointer}"
+
+sources=("$gtest/googletest/src/gtest-all.cc" "$gtest/googletest/src/gtest_main.cc")
+while IFS= read -r -d '' test_source; do
+    sources+=("$test_source")
+done < <(find "$root/tests/unit" -type f -name '*_test.cpp' -print0 | sort -z)
+while IFS= read -r line; do
+    line=${line%%#*}
+    line=${line//[[:space:]]/}
+    [[ -n $line ]] || continue
+    [[ -f $root/$line ]] || { echo "tests/unit/sources.txt: missing $line" >&2; exit 2; }
+    sources+=("$root/$line")
+done < "$root/tests/unit/sources.txt"
+
 objects=()
-for source in "$gtest/googletest/src/gtest-all.cc" "$gtest/googletest/src/gtest_main.cc" \
-    "$root/tests/test_demo_renderer.cpp" "$root/src/demo_renderer.cpp"; do
-    object="$build/${source##*/}.o"
-    args=(-std=c++20 -O2)
-    [[ $source == "$gtest/"* ]] || args=("${flags[@]}")
+for source in "${sources[@]}"; do
+    relative=${source#"$root/"}
+    relative=${relative#"$gtest/"}
+    object="$build/obj/${relative//\//_}.o"
     ninja_inputs=("$source" "$cxx")
-    ninja_edge CXX "$object" "${compiler_cache[@]}" "$cxx" "${args[@]}" -pthread \
-        -I"$root/src" -isystem "$gtest/googletest/include" -I"$gtest/googletest" \
-        -MD -MF "$object.d" -c "$source" -o "$object"
+    if [[ $source == "$gtest/"* ]]; then
+        ninja_edge CXX "$object" "${compiler_cache[@]}" "$cxx" -std=c++20 -O2 -pthread \
+            "${sanitizers[@]}" -isystem "$gtest/googletest/include" -I"$gtest/googletest" \
+            -MD -MF "$object.d" -c "$source" -o "$object"
+    elif [[ $source == *.c ]]; then
+        # Vendored C (for example the Tatham puzzles) builds without -Werror.
+        ninja_inputs=("$source" "$cc")
+        ninja_edge CC "$object" "${compiler_cache[@]}" "$cc" -std=c11 -O2 -w \
+            "${sanitizers[@]}" -DCOMBINED -I"$root/src" -I"$root/src/third_party/sgt-puzzles" \
+            -MD -MF "$object.d" -c "$source" -o "$object"
+    else
+        ninja_edge CXX "$object" "${compiler_cache[@]}" "$cxx" "${flags[@]}" -pthread \
+            "${sanitizers[@]}" -DCOMBINED -I"$root/src" -I"$root/tests" \
+            -I"$root/src/third_party/sgt-puzzles" \
+            -isystem "$gtest/googletest/include" -MD -MF "$object.d" -c "$source" -o "$object"
+    fi
     objects+=("$object")
 done
 ninja_inputs=("${objects[@]}" "$cxx")
-ninja_edge LINK "$build/demo_renderer_tests" "$cxx" "${flags[@]}" -pthread \
-    "${objects[@]}" "${ldflags[@]}" -o "$build/demo_renderer_tests"
+ninja_edge LINK "$build/unit_tests" "$cxx" "${flags[@]}" -pthread "${sanitizers[@]}" \
+    "${objects[@]}" "${ldflags[@]}" -lm -o "$build/unit_tests"
 ninja_run
