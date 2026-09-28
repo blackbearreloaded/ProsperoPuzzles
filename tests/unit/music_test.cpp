@@ -132,7 +132,7 @@ TEST(MusicPlayer, PlaysEverySongInTurnThenStartsOver)
         if (!player.current().empty() && (heard.empty() || heard.back() != player.current()))
             heard.push_back(player.current());
     }
-    EXPECT_GT(loudest, 0.05);
+    EXPECT_GT(loudest, 0.02); // Audible at the 40% background level.
     // Songs follow the shuffled order and the list starts over after the last.
     ASSERT_GE(heard.size(), 5u);
     for (std::size_t i = 0; i < heard.size(); ++i)

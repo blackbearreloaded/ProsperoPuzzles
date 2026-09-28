@@ -19,9 +19,9 @@ namespace ppz::audio
 namespace
 {
 
-// Music is a backdrop: half level under everything else, before the Music
+// Music is a backdrop: 40% level under everything else, before the Music
 // slider in Settings.
-constexpr float kBaseGain = 0.5f;
+constexpr float kBaseGain = 0.4f;
 constexpr float kDuckSeconds = 2.5f;
 constexpr float kDuckGain = 0.5f;     // -6 dB
 constexpr float kGapSeconds = 1.5f;   // quiet breath between songs
