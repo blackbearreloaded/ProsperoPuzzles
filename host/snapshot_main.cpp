@@ -15,6 +15,8 @@
 #include "games/registry.hpp"
 #include "games/sgt/sgt_catalog.hpp"
 #include "games/sgt/sgt_scene.hpp"
+#include "games/g2048/g2048_scene.hpp"
+#include "games/tenfold/tenfold_scene.hpp"
 #include "ui/gallery.hpp"
 #include "ui/library_scene.hpp"
 #include "ui/theme.hpp"
@@ -187,7 +189,7 @@ int main(int argc, char **argv)
     {
         const ppz::sgt::GameEntry *entry = ppz::sgt::find_game(id);
         ppz::sgt::SgtScene game(*entry, batch, fonts, 1.0f);
-        game.start();
+        game.start({}, {});
         ppz::InputFrame step;
         step.nav = ppz::Direction::right;
         game.update(step, 0.016f, cues);
@@ -210,6 +212,48 @@ int main(int argc, char **argv)
         list.clear();
         game.draw(list);
         ok = write((std::string("game-") + id).c_str()) && ok;
+    }
+
+    {
+        ppz::g2048::G2048Scene g2048(fonts);
+        g2048.start({}, {});
+        for (auto d : {ppz::Direction::left, ppz::Direction::up, ppz::Direction::left,
+                       ppz::Direction::up, ppz::Direction::right, ppz::Direction::up})
+        {
+            ppz::InputFrame f;
+            f.nav = d;
+            g2048.update(f, 0.016f, cues);
+            for (int frame = 0; frame < 30; ++frame)
+                g2048.update(idle, 1.0f / 60.0f, cues);
+        }
+        list.clear();
+        g2048.draw(list);
+        ok = write("game-g2048") && ok;
+    }
+    {
+        ppz::tenfold::TenfoldScene tenfold(fonts);
+        tenfold.start({}, {});
+        for (int frame = 0; frame < 60; ++frame)
+            tenfold.update(idle, 1.0f / 60.0f, cues);
+        ppz::InputFrame hint;
+        hint.pressed = ppz::action_bit(ppz::Action::west);
+        tenfold.update(hint, 0.016f, cues);
+        ppz::InputFrame select;
+        select.pressed = ppz::action_bit(ppz::Action::confirm);
+        tenfold.update(select, 0.016f, cues);
+        for (int frame = 0; frame < 20; ++frame)
+            tenfold.update(idle, 1.0f / 60.0f, cues);
+        list.clear();
+        tenfold.draw(list);
+        ok = write("game-tenfold") && ok;
+        ppz::InputFrame menu;
+        menu.pressed = ppz::action_bit(ppz::Action::menu);
+        tenfold.update(menu, 0.016f, cues);
+        for (int frame = 0; frame < 30; ++frame)
+            tenfold.update(idle, 1.0f / 60.0f, cues);
+        list.clear();
+        tenfold.draw(list);
+        ok = write("game-tenfold-paused") && ok;
     }
     return ok ? 0 : 1;
 }

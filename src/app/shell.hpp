@@ -8,7 +8,7 @@
 #include "core/input.hpp"
 #include "core/library.hpp"
 #include "core/tween.hpp"
-#include "games/sgt/sgt_scene.hpp"
+#include "games/game_scene.hpp"
 #include "gfx/draw_list.hpp"
 #include "gfx/gl_batch.hpp"
 #include "ui/library_scene.hpp"
@@ -50,6 +50,7 @@ class Shell
     void save_library();
     void save_game();
     std::string game_path(const std::string &id) const;
+    std::string stats_path(const std::string &id) const;
     void toast(const std::string &text);
 
     gfx::GlBatch &batch_;
@@ -58,7 +59,7 @@ class Shell
     std::string root_;
     Library library_;
     ui::LibraryScene library_scene_;
-    std::unique_ptr<sgt::SgtScene> game_;
+    std::unique_ptr<games::GameScene> game_;
     Stage stage_ = Stage::library;
     tween::Timer transition_;
     tween::Timer toast_timer_;

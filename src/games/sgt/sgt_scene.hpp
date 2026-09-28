@@ -9,7 +9,9 @@
 #include "core/tween.hpp"
 #include "games/sgt/sgt_canvas.hpp"
 #include "games/sgt/sgt_session.hpp"
+#include "games/game_scene.hpp"
 #include "gfx/draw_list.hpp"
+#include "ui/menu.hpp"
 #include "ui/theme.hpp"
 
 #include <memory>
@@ -19,29 +21,29 @@
 namespace ppz::sgt
 {
 
-enum class SceneExit
-{
-    none,
-    library, // the player asked to return to the library
-};
-
 // Controller mapping (PLAN.md 5.9): D-pad cursor keys, Cross/Square select
 // and select2, L1/R1 undo/redo, Triangle key palette, left stick pointer,
 // Options pause menu, Circle closes overlays.
-class SgtScene
+using games::SceneExit;
+
+class SgtScene final : public games::GameScene
 {
   public:
     SgtScene(const GameEntry &entry, gfx::GlBatch &batch, const ui::Fonts &fonts,
              float surface_scale);
 
     // Starts a new game, or restores a serialised one when save is not empty.
-    void start(const std::string &save = {});
+    void start(const std::string &save, const std::string &stats) override;
 
-    SceneExit update(const InputFrame &input, float dt, std::vector<audio::Cue> &cues);
-    void draw(gfx::DrawList &list) const;
+    SceneExit update(const InputFrame &input, float dt, std::vector<audio::Cue> &cues) override;
+    void draw(gfx::DrawList &list) const override;
 
-    std::string save();
-    bool in_progress();
+    std::string save() override;
+    bool in_progress() override;
+    const std::string &id() const override
+    {
+        return id_;
+    }
     const GameEntry &entry() const
     {
         return entry_;
@@ -51,7 +53,6 @@ class SgtScene
     enum class Overlay
     {
         none,
-        pause,
         palette,
     };
 
@@ -59,7 +60,6 @@ class SgtScene
     void send(int button, std::vector<audio::Cue> &cues, int x = 0, int y = 0);
     void handle_pointer(const InputFrame &input, float dt, std::vector<audio::Cue> &cues);
     void run_pause_item(int item, std::vector<audio::Cue> &cues, SceneExit &exit);
-    void draw_pause(gfx::DrawList &list) const;
     void draw_palette(gfx::DrawList &list) const;
 
     const GameEntry &entry_;
@@ -69,7 +69,8 @@ class SgtScene
     std::unique_ptr<Session> session_;
     gfx::Rect board_; // virtual pixels
     Overlay overlay_ = Overlay::none;
-    int pause_focus_ = 0;
+    ui::Menu pause_;
+    std::string id_;
     int palette_focus_ = 0;
     std::vector<KeyLabel> keys_;
     bool pointer_active_ = false;

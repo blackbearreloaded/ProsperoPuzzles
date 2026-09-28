@@ -16,8 +16,6 @@ namespace
 {
 
 constexpr gfx::Rect kBoardArea{96.0f, 210.0f, 1728.0f, 730.0f};
-constexpr const char *kPauseItems[] = {"Resume", "New game", "Restart", "Solve", "Back to library"};
-constexpr int kPauseCount = 5;
 
 gfx::Color accent_of(const GameEntry &entry)
 {
@@ -47,7 +45,7 @@ int cursor_button(Direction direction)
 SgtScene::SgtScene(const GameEntry &entry, gfx::GlBatch &batch, const ui::Fonts &fonts,
                    float surface_scale)
     : entry_(entry), fonts_(fonts), surface_scale_(surface_scale),
-      renderer_(std::make_unique<CanvasRenderer>(batch, fonts))
+      renderer_(std::make_unique<CanvasRenderer>(batch, fonts)), id_(entry.id)
 {
     // The session is created after the renderer so it is destroyed first:
     // its teardown frees blitters through the renderer.
@@ -55,8 +53,9 @@ SgtScene::SgtScene(const GameEntry &entry, gfx::GlBatch &batch, const ui::Fonts 
     session_->set_renderer(renderer_.get());
 }
 
-void SgtScene::start(const std::string &save)
+void SgtScene::start(const std::string &save, const std::string &stats)
 {
+    (void)stats;
     if (save.empty() || !session_->deserialise(save).empty())
         session_->new_game();
     layout();
@@ -186,7 +185,6 @@ void SgtScene::run_pause_item(int item, std::vector<audio::Cue> &cues, SceneExit
         cues.push_back(audio::Cue::ui_back);
         break;
     default:
-        cues.push_back(audio::Cue::ui_pause_close);
         break;
     }
 }
@@ -198,18 +196,11 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
     solved_banner_.update(dt);
     shake_.update(dt);
 
-    if (overlay_ == Overlay::pause)
+    if (pause_.is_open())
     {
-        if (input.nav == Direction::up || input.nav == Direction::down)
-        {
-            pause_focus_ =
-                (pause_focus_ + (input.nav == Direction::up ? kPauseCount - 1 : 1)) % kPauseCount;
-            cues.push_back(audio::Cue::ui_focus);
-        }
-        if (input.is_pressed(ppz::Action::confirm))
-            run_pause_item(pause_focus_, cues, exit);
-        else if (input.is_pressed(ppz::Action::back) || input.is_pressed(ppz::Action::menu))
-            run_pause_item(0, cues, exit);
+        const int choice = pause_.update(input, dt, cues);
+        if (choice != ui::Menu::kNone)
+            run_pause_item(choice == ui::Menu::kCancelled ? 0 : choice, cues, exit);
     }
     else if (overlay_ == Overlay::palette)
     {
@@ -238,8 +229,13 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
         if (input.is_pressed(ppz::Action::menu) || input.is_pressed(ppz::Action::back) ||
             input.focus_lost)
         {
-            overlay_ = Overlay::pause;
-            pause_focus_ = 0;
+            pause_.open("Paused",
+                        {{"Resume", 0},
+                         {"New game", 1},
+                         {"Restart", 2},
+                         {"Solve", 3, session_->can_solve()},
+                         {"Back to library", 4}},
+                        entry_.display_name);
             if (!input.focus_lost)
                 cues.push_back(audio::Cue::ui_pause_open);
         }
@@ -271,6 +267,8 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
         }
     }
 
+    if (!pause_.is_open())
+        pause_.update(InputFrame{}, dt, cues);
     session_->tick(dt);
     session_->redraw();
     const int status = session_->status();
@@ -381,35 +379,11 @@ void SgtScene::draw(gfx::DrawList &list) const
     {
         list.push_opacity(overlay_fade_.value);
         list.rounded_rect({0, 0, 1920, 1080}, 0, Color::rgb(0x05070f, 0.55f));
-        if (overlay_ == Overlay::pause)
-            draw_pause(list);
-        else if (overlay_ == Overlay::palette)
+        if (overlay_ == Overlay::palette)
             draw_palette(list);
         list.pop_opacity();
     }
-}
-
-void SgtScene::draw_pause(gfx::DrawList &list) const
-{
-    using gfx::Align;
-    const gfx::Rect panel{660, 250, 600, 90.0f + 76.0f * kPauseCount};
-    list.shadow({panel.x, panel.y + 16, panel.w, panel.h}, 28, 40, ui::theme::kShadow);
-    list.rounded_rect(panel, 28, ui::theme::kPaper);
-    list.text(*fonts_.semibold, fonts_.semibold_texture, "Paused", panel.x + 40, panel.y + 62, 36,
-              ui::theme::kInk);
-    for (int i = 0; i < kPauseCount; ++i)
-    {
-        const float y = panel.y + 90.0f + static_cast<float>(i) * 76.0f;
-        const bool focused = i == pause_focus_;
-        const bool disabled = i == 3 && !session_->can_solve();
-        if (focused)
-            list.rounded_rect({panel.x + 20, y, panel.w - 40, 64}, 16, gfx::Color::rgb(0x1b1d2b));
-        list.text(*fonts_.semibold, fonts_.semibold_texture, kPauseItems[i], panel.x + 48, y + 43,
-                  28,
-                  focused    ? ui::theme::kTextOnDark
-                  : disabled ? ui::theme::kInkMuted.with_alpha(0.5f)
-                             : ui::theme::kInk);
-    }
+    pause_.draw(list, fonts_);
 }
 
 void SgtScene::draw_palette(gfx::DrawList &list) const

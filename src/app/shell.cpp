@@ -6,7 +6,9 @@
 
 #include "core/save_file.hpp"
 #include "games/registry.hpp"
-#include "games/sgt/sgt_catalog.hpp"
+#include "games/g2048/g2048_scene.hpp"
+#include "games/sgt/sgt_scene.hpp"
+#include "games/tenfold/tenfold_scene.hpp"
 #include "platform/ps5/system.hpp"
 
 #include <unistd.h>
@@ -64,6 +66,11 @@ std::string Shell::game_path(const std::string &id) const
     return root_ + "/games/" + id + ".sav";
 }
 
+std::string Shell::stats_path(const std::string &id) const
+{
+    return root_ + "/games/" + id + ".stats";
+}
+
 void Shell::save_library()
 {
     const std::string error = save::write_atomic(
@@ -77,7 +84,15 @@ void Shell::save_game()
 {
     if (!game_)
         return;
-    const std::string id = game_->entry().id;
+    const std::string id = game_->id();
+    const std::string stats = game_->stats();
+    if (!stats.empty())
+    {
+        const std::string error = save::write_atomic(
+            stats_path(id), save::encode(save::Kind::stats, kGameVersion, stats));
+        if (!error.empty())
+            sys::log("[PPZ] stats save failed %s: %s", id.c_str(), error.c_str());
+    }
     if (game_->in_progress())
     {
         const std::string error = save::write_atomic(
@@ -103,10 +118,9 @@ void Shell::toast(const std::string &text)
 void Shell::launch(const std::string &id)
 {
     const games::GameInfo *game = games::find(id);
-    if (game == nullptr || game->kind != games::Kind::sgt)
+    if (game == nullptr)
     {
         cues_.push_back(audio::Cue::ui_error);
-        toast(std::string(game != nullptr ? game->name : id) + " is coming soon");
         return;
     }
     std::string save_data;
@@ -117,8 +131,27 @@ void Shell::launch(const std::string &id)
         if (decoded.ok)
             payload = decoded.payload;
     }
-    game_ = std::make_unique<sgt::SgtScene>(*game->sgt, batch_, fonts_, surface_scale_);
-    game_->start(payload);
+    switch (game->kind)
+    {
+    case games::Kind::sgt:
+        game_ = std::make_unique<sgt::SgtScene>(*game->sgt, batch_, fonts_, surface_scale_);
+        break;
+    case games::Kind::g2048:
+        game_ = std::make_unique<g2048::G2048Scene>(fonts_);
+        break;
+    case games::Kind::tenfold:
+        game_ = std::make_unique<tenfold::TenfoldScene>(fonts_);
+        break;
+    }
+    std::string stats_data;
+    std::string stats_payload;
+    if (save::read_file(stats_path(id), &stats_data))
+    {
+        const auto decoded = save::decode(save::Kind::stats, stats_data);
+        if (decoded.ok)
+            stats_payload = decoded.payload;
+    }
+    game_->start(payload, stats_payload);
     sys::log("[PPZ] launch game=%s resumed=%d", id.c_str(), payload.empty() ? 0 : 1);
     stage_ = Stage::entering;
     transition_.start(kTransitionSeconds);
@@ -150,14 +183,14 @@ void Shell::update(const InputFrame &input, float dt)
         break;
     case Stage::game:
     {
-        const sgt::SceneExit exit = game_->update(input, dt, cues_);
+        const games::SceneExit exit = game_->update(input, dt, cues_);
         autosave_ += dt;
         const bool moved = !cues_.empty();
-        if (exit == sgt::SceneExit::library)
+        if (exit == games::SceneExit::library)
         {
             save_game();
             save_library();
-            library_scene_.focus_game(game_->entry().id);
+            library_scene_.focus_game(game_->id());
             stage_ = Stage::leaving;
             transition_.start(kTransitionSeconds);
         }
@@ -238,7 +271,7 @@ std::vector<audio::Cue> Shell::take_cues()
 
 std::string Shell::active_game() const
 {
-    return game_ && stage_ == Stage::game ? game_->entry().id : std::string();
+    return game_ && stage_ == Stage::game ? game_->id() : std::string();
 }
 
 } // namespace ppz::app

@@ -16,7 +16,8 @@ sources=("$root/host/snapshot_main.cpp" "$root/host/platform_host.cpp"
     "$root/src/gfx/font.cpp" "$root/src/gfx/gl_batch.cpp" "$root/src/gfx/gl_program.cpp"
     "$root/src/games/registry.cpp" "$root/src/games/sgt/sgt_catalog.cpp"
     "$root/src/games/sgt/sgt_canvas.cpp" "$root/src/games/sgt/sgt_scene.cpp"
-    "$root/src/gfx/canvas.cpp" "$root/src/gfx/triangulate.cpp"
+    "$root/src/gfx/canvas.cpp" "$root/src/gfx/triangulate.cpp" "$root/src/ui/menu.cpp"
+    "$root/src/games/g2048/g2048_scene.cpp" "$root/src/games/tenfold/tenfold_scene.cpp"
     "$root/src/ui/theme.cpp" "$root/src/ui/gallery.cpp" "$root/src/ui/library_scene.cpp")
 while IFS= read -r -d '' source; do
     sources+=("$source")
