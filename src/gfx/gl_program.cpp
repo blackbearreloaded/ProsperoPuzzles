@@ -9,14 +9,24 @@
 namespace ppz::gfx
 {
 
-const char *const kGlslPrefix = "#version 460 core\n";
+namespace
+{
+
+const char *g_glsl_prefix = "#version 460 core\n";
+
+} // namespace
+
+void set_glsl_prefix(const char *prefix)
+{
+    g_glsl_prefix = prefix;
+}
 
 namespace
 {
 
 GLuint compile(const char *label, GLenum stage, const char *source)
 {
-    const char *sources[] = {kGlslPrefix, source};
+    const char *sources[] = {g_glsl_prefix, source};
     GLuint shader = glCreateShader(stage);
     glShaderSource(shader, 2, sources, nullptr);
     glCompileShader(shader);

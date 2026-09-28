@@ -59,7 +59,7 @@ RUNTIME_INPUTS := tools/rebuild-libc.sh tools/build-host-tools.sh tools/ninja-bu
 	$(wildcard tooling/native/runtime/*.txt)
 HOST_UNIT_TEST := build/tests/unit_tests
 
-.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps opengl pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
+.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps opengl host-snapshots fonts pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
 
 all: app
 build: app
@@ -161,6 +161,14 @@ lint:
 
 check: lint test app
 
+host-snapshots:
+	@printf '%s\n' '==> [host-snapshots] Rendering UI scenes to build/snapshots (Mesa llvmpipe)'
+	@bash tools/host-snapshots.sh
+
+fonts:
+	@printf '%s\n' '==> [fonts] Baking SDF font atlases into assets/fonts'
+	@bash tools/bake-fonts.sh
+
 clean:
 	@printf '%s\n' '==> [clean] Removing generated build outputs'
 	@rm -rf -- build dist
@@ -174,6 +182,8 @@ help:
 	@printf '%s\n' \
 	  'make                 Generate libc.prx and build the ProsperoPuzzles folder' \
 	  'make opengl          Fetch/verify the ps5-opengl SDK and write its link group' \
+	  'make host-snapshots  Render UI scenes to PNG on the host (Mesa llvmpipe)' \
+	  'make fonts           Rebake the SDF font atlases in assets/fonts' \
 	  'make init TITLE_ID=PPSA12345 APP_NAME="My App"  Configure app identity' \
 	  'make doctor          Check required and optional Linux/WSL tools' \
 	  'make test            Run all host unit and integration tests' \

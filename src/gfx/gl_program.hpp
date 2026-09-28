@@ -9,9 +9,10 @@
 namespace ppz::gfx
 {
 
-// Shader sources carry no #version line; the platform prefix is prepended here
-// ("#version 460 core" on PS5) so the same sources can target other hosts.
-extern const char *const kGlslPrefix;
+// Shader sources carry no #version line; this prefix is prepended at compile
+// time. It defaults to "#version 460 core" (PS5); the host preview selects
+// the version its driver supports.
+void set_glsl_prefix(const char *prefix);
 
 // Compiles and links a vertex/fragment program. Returns 0 and logs the info
 // log on failure.
