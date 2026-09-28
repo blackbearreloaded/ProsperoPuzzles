@@ -43,8 +43,9 @@ HOWTO(trafficjam,
 HOWTO(trail,
       "Draw one path that visits every cell exactly once, moving up, down, left or right.\nThe "
       "path starts at 1 and must pass the numbered cells in order, ending on the highest number.",
-      "The path grows from its end as you move with the D-pad; step back onto it to erase. "
-      "Cross on a path cell cuts the path back to that cell.")
+      "The path grows from its end as you move with the D-pad; step back onto it, or press "
+      "Square, to erase. Cross switches to cut mode: choose a path cell with the D-pad and "
+      "press Cross to cut the path back to it (Circle cancels).")
 HOWTO(blackbox,
       "Balls are hidden inside the box. Fire a laser from any edge: it may pass straight through, "
       "be absorbed by a ball (H), be reflected back (R), or come out elsewhere after being "

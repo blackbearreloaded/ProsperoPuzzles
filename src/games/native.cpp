@@ -5,6 +5,8 @@
 #include "games/native.hpp"
 
 #include "games/crowns/crowns_scene.hpp"
+#include "games/trail/trail_scene.hpp"
+#include "games/linkup/linkup_scene.hpp"
 #include "games/sokoban/sokoban_scene.hpp"
 
 namespace ppz::games
@@ -25,6 +27,12 @@ constexpr NativeGame kNative[] = {
     {"sokoban", "Sokoban", "Warehouse crate pushing",
      "Push every crate onto a target. Crates can only be pushed, one at a time.",
      &make<sokoban::SokobanScene>},
+    {"linkup", "Link Up", "Colour path puzzle",
+     "Join every pair of matching dots with a path and fill the whole board.",
+     &make<linkup::LinkUpScene>},
+    {"trail", "Trail", "One-line path puzzle",
+     "Draw one path through every cell, passing the numbers in order from 1 to the last.",
+     &make<trail::TrailScene>},
 };
 
 } // namespace

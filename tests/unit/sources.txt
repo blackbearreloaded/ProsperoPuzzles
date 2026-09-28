@@ -19,6 +19,8 @@ src/games/registry.cpp
 src/games/native.cpp
 src/games/kit/*.cpp
 src/games/crowns/*.cpp
+src/games/trail/*.cpp
+src/games/linkup/*.cpp
 src/games/sokoban/*.cpp
 src/games/tenfold/tenfold_scene.cpp
 src/ui/confetti.cpp
