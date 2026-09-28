@@ -188,10 +188,26 @@ LibraryRequest LibraryScene::update(const InputFrame &input, float dt,
         default:
             break;
         }
-        if (input.is_pressed(Action::jump_next))
-            move_focus(library_.next_letter(focus_), cues, audio::Cue::ui_tab);
-        if (input.is_pressed(Action::jump_prev))
-            move_focus(library_.previous_letter(focus_), cues, audio::Cue::ui_tab);
+        // Letter jumps wrap around so L2/R2 never dead-end at either end.
+        const int count = static_cast<int>(library_.items().size());
+        if (input.is_pressed(Action::jump_next) && count > 0)
+        {
+            int target = library_.next_letter(focus_);
+            if (target == focus_)
+                target = 0;
+            move_focus(target, cues, audio::Cue::ui_tab);
+        }
+        if (input.is_pressed(Action::jump_prev) && count > 0)
+        {
+            int target = library_.previous_letter(focus_);
+            if (target == focus_)
+            {
+                const int last = count - 1;
+                const int start = library_.previous_letter(last);
+                target = library_.next_letter(start) == start ? start : last;
+            }
+            move_focus(target, cues, audio::Cue::ui_tab);
+        }
     }
 
     if (input.is_pressed(Action::page_next) || input.is_pressed(Action::page_prev))

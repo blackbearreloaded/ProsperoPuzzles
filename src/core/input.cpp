@@ -94,13 +94,16 @@ InputFrame InputTracker::update(std::span<const PadSample> samples, std::uint64_
         if (!usable)
         {
             // Disconnected or the system overlay owns input: all released.
-            if (connected_ || held_ != 0)
+            // Reported once on the transition, not every frame it lasts.
+            if (usable_ || held_ != 0)
                 lost = true;
             frame.released |= held_;
             held_ = 0;
             connected_ = sample.connected;
+            usable_ = false;
             continue;
         }
+        usable_ = true;
         const std::uint32_t actions = map_buttons(sample, settings_.swap_confirm);
         frame.pressed |= actions & ~held_;
         frame.released |= held_ & ~actions;

@@ -141,6 +141,7 @@ class InputTracker
     std::uint32_t held_ = 0;
     bool connected_ = false;
     bool have_state_ = false;
+    bool usable_ = false; // last sample was ours (connected, not intercepted)
     PadSample last_{};
     Direction nav_held_ = Direction::none;
     std::uint64_t nav_next_us_ = 0;

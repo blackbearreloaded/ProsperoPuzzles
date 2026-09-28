@@ -120,6 +120,18 @@ TEST(Input, InterceptOrDisconnectReleasesEverythingAndLosesFocus)
     EXPECT_FALSE(frame.connected);
 }
 
+TEST(Input, FocusLostFiresOnceWhileOverlayOwnsInput)
+{
+    InputTracker tracker;
+    const std::vector<PadSample> idle = {sample(0)};
+    tracker.update(idle, 0);
+    const std::vector<PadSample> overlay = {sample(bits::kIntercepted)};
+    EXPECT_TRUE(tracker.update(overlay, 1000).focus_lost);
+    EXPECT_FALSE(tracker.update(overlay, 2000).focus_lost);
+    tracker.update(idle, 3000);
+    EXPECT_TRUE(tracker.update(overlay, 4000).focus_lost);
+}
+
 TEST(Input, AnalogTriggersMapToJumps)
 {
     PadSample s = sample(0);
