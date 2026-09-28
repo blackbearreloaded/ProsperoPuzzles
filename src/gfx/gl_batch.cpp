@@ -203,6 +203,11 @@ void main()
 
 GlBatch::~GlBatch()
 {
+    release();
+}
+
+void GlBatch::release()
+{
     if (buffer_ != 0)
         glDeleteBuffers(1, &buffer_);
     if (vao_ != 0)
@@ -215,6 +220,9 @@ GlBatch::~GlBatch()
         glDeleteVertexArrays(1, &mesh_vao_);
     if (mesh_program_ != 0)
         glDeleteProgram(mesh_program_);
+    buffer_ = vao_ = program_ = mesh_buffer_ = mesh_vao_ = mesh_program_ = 0;
+    capacity_ = 0;
+    mesh_capacity_ = 0;
 }
 
 bool GlBatch::init()

@@ -41,6 +41,7 @@ class SettingsScene
         kReducedMotion,
         kSwapConfirm,
         kShowFps,
+        kResolution,
         kRowCount,
     };
 

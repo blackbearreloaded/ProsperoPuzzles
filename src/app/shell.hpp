@@ -36,6 +36,9 @@ class Shell
   public:
     Shell(gfx::GlBatch &batch, const ui::Fonts &fonts, float surface_scale, std::string data_root);
 
+    // The saved settings, read before the display opens (defaults if absent).
+    static Settings load_settings(const std::string &data_root);
+
     void update(const InputFrame &input, float dt);
     void draw(gfx::DrawList &list) const;
 
@@ -50,6 +53,11 @@ class Shell
     {
         return settings_;
     }
+    // Records the resolution the display actually opened with.
+    void set_applied_resolution(int resolution)
+    {
+        applied_resolution_ = resolution;
+    }
     // True once after the settings changed (the caller applies them).
     bool take_settings_changed()
     {
@@ -57,6 +65,19 @@ class Shell
         settings_changed_ = false;
         return changed;
     }
+    // True once after the Resolution setting changed: the caller restarts the
+    // display between release_gpu() and restore_gpu().
+    bool take_display_mode_changed()
+    {
+        const bool changed = display_mode_changed_;
+        display_mode_changed_ = false;
+        return changed;
+    }
+    // Frees every GL object the shell owns (previews, a running game's canvas)
+    // before the GL context is destroyed.
+    void release_gpu();
+    // Renders again at the new surface scale in a fresh GL context.
+    void restore_gpu(float surface_scale);
 
   private:
     enum class Stage
@@ -79,6 +100,7 @@ class Shell
     // The player's records for a game, read from its stats file.
     games::Record record_for(const games::GameInfo &game) const;
     void start_game(const std::string &id, bool fresh);
+    void request_thumbnails();
 
     gfx::GlBatch &batch_;
     ui::Fonts fonts_;
@@ -95,6 +117,8 @@ class Shell
     float autosave_ = 0.0f;
     Settings settings_;
     bool settings_changed_ = true;
+    bool display_mode_changed_ = false;
+    int applied_resolution_ = -1; // resolution the display was opened with
     ui::SettingsScene settings_scene_{settings_};
     ui::Menu details_;
     Thumbnails thumbnails_{batch_, fonts_, surface_scale_};

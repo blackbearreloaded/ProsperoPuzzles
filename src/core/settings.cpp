@@ -13,8 +13,9 @@ namespace ppz
 
 namespace
 {
-constexpr std::uint8_t kVersion = 1;
-}
+// Version 2 appends the display resolution; version 1 saves still load.
+constexpr std::uint8_t kVersion = 2;
+} // namespace
 
 std::string encode_settings(const Settings &settings)
 {
@@ -26,13 +27,15 @@ std::string encode_settings(const Settings &settings)
     w.put_bool(settings.reduced_motion);
     w.put_bool(settings.swap_confirm);
     w.put_bool(settings.show_fps);
+    w.put(static_cast<std::uint8_t>(settings.resolution));
     return w.data();
 }
 
 bool decode_settings(std::string_view data, Settings *settings)
 {
     bytes::Reader r(data);
-    if (r.get<std::uint8_t>() != kVersion)
+    const std::uint8_t version = r.get<std::uint8_t>();
+    if (version != 1 && version != kVersion)
         return false;
     Settings s;
     s.music_volume = std::clamp<int>(r.get<std::uint8_t>(), 0, 10);
@@ -41,6 +44,8 @@ bool decode_settings(std::string_view data, Settings *settings)
     s.reduced_motion = r.get_bool();
     s.swap_confirm = r.get_bool();
     s.show_fps = r.get_bool();
+    if (version >= 2)
+        s.resolution = std::clamp<int>(r.get<std::uint8_t>(), 0, Settings::kResolutionCount - 1);
     if (!r.finished())
         return false;
     *settings = s;

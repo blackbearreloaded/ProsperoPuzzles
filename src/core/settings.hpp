@@ -19,6 +19,18 @@ struct Settings
     bool reduced_motion = false;
     bool swap_confirm = false; // Circle confirms, Cross goes back
     bool show_fps = false;
+    // Display resolution, an index into kResolutions (1080p, 1440p, 4K).
+    int resolution = 0;
+
+    struct Resolution
+    {
+        int width;
+        int height;
+        const char *label;
+    };
+    static constexpr int kResolutionCount = 3;
+    static constexpr Resolution kResolutions[kResolutionCount] = {
+        {1920, 1080, "1080p"}, {2560, 1440, "1440p"}, {3840, 2160, "4K"}};
 
     static float gain(int volume)
     {

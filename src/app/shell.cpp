@@ -49,32 +49,72 @@ Shell::Shell(gfx::GlBatch &batch, const ui::Fonts &fonts, float surface_scale,
             sys::log("[PPZ] library.bin ignored: %s", decoded.error.c_str());
         }
     }
-    if (save::read_file(root_ + "/settings.bin", &data))
-    {
-        const auto decoded = save::decode(save::Kind::settings, data);
-        if (!decoded.ok || !decode_settings(decoded.payload, &settings_))
-            sys::log("[PPZ] settings.bin ignored: %s", decoded.error.c_str());
-    }
+    settings_ = load_settings(root_);
     library_scene_.reduced_motion = settings_.reduced_motion;
     library_scene_.set_thumbnails(&thumbnails_);
     int resumable = 0;
+    for (const games::GameInfo &game : games::all())
+    {
+        if (save::read_file(game_path(game.id), &data))
+        {
+            library_.set_in_progress(game.id, true);
+            ++resumable;
+        }
+        library_.set_completed(game.id, record_for(game).beaten);
+    }
+    request_thumbnails();
+    sys::log("[PPZ] library games=%zu favorites_loaded resumable=%d", library_.entries().size(),
+             resumable);
+}
+
+Settings Shell::load_settings(const std::string &data_root)
+{
+    Settings settings;
+    std::string data;
+    if (save::read_file(data_root + "/settings.bin", &data))
+    {
+        const auto decoded = save::decode(save::Kind::settings, data);
+        if (!decoded.ok || !decode_settings(decoded.payload, &settings))
+            sys::log("[PPZ] settings.bin ignored: %s", decoded.error.c_str());
+    }
+    return settings;
+}
+
+void Shell::request_thumbnails()
+{
+    // Previews show the game in progress, or a demo board.
     for (const games::GameInfo &game : games::all())
     {
         std::string data_file;
         std::string payload;
         if (save::read_file(game_path(game.id), &data_file))
         {
-            library_.set_in_progress(game.id, true);
-            ++resumable;
             const auto decoded = save::decode(save::Kind::game, data_file);
             if (decoded.ok)
                 payload = decoded.payload;
         }
         thumbnails_.request(game.id, payload);
-        library_.set_completed(game.id, record_for(game).beaten);
     }
-    sys::log("[PPZ] library games=%zu favorites_loaded resumable=%d", library_.entries().size(),
-             resumable);
+}
+
+void Shell::release_gpu()
+{
+    thumbnails_.reset(surface_scale_);
+    if (game_)
+    {
+        // Settings are only reachable from the library, but never keep a
+        // game's canvas across a context change: it resumes from its save.
+        save_game();
+        game_.reset();
+        stage_ = Stage::library;
+    }
+}
+
+void Shell::restore_gpu(float surface_scale)
+{
+    surface_scale_ = surface_scale;
+    thumbnails_.reset(surface_scale_);
+    request_thumbnails();
 }
 
 games::Record Shell::record_for(const games::GameInfo &game) const
@@ -301,6 +341,11 @@ void Shell::update(const InputFrame &input, float dt)
         if (result == ui::SettingsScene::Result::changed)
         {
             library_scene_.reduced_motion = settings_.reduced_motion;
+            if (settings_.resolution != applied_resolution_)
+            {
+                applied_resolution_ = settings_.resolution;
+                display_mode_changed_ = true;
+            }
             settings_changed_ = true;
             save_settings();
         }

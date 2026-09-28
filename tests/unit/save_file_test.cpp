@@ -88,6 +88,30 @@ TEST(Settings, RoundTripsAndClampsVolumes)
     EXPECT_FLOAT_EQ(ppz::Settings::gain(0), 0.0f);
 }
 
+TEST(Settings, KeepsTheResolutionAndReadsVersionOneSaves)
+{
+    ppz::Settings settings;
+    settings.resolution = 2;
+    ppz::Settings read;
+    std::string data = ppz::encode_settings(settings);
+    ASSERT_TRUE(ppz::decode_settings(data, &read));
+    EXPECT_EQ(read.resolution, 2);
+    EXPECT_EQ(ppz::Settings::kResolutions[read.resolution].height, 2160);
+
+    data.back() = 7; // out of range: clamps to the largest mode
+    ASSERT_TRUE(ppz::decode_settings(data, &read));
+    EXPECT_EQ(read.resolution, ppz::Settings::kResolutionCount - 1);
+
+    // A version 1 save (before Resolution existed) loads with 1080p.
+    std::string v1 = ppz::encode_settings(settings);
+    v1[0] = 1;
+    v1.pop_back();
+    ASSERT_TRUE(ppz::decode_settings(v1, &read));
+    EXPECT_EQ(read.resolution, 0);
+    v1[0] = 3;
+    EXPECT_FALSE(ppz::decode_settings(v1, &read));
+}
+
 } // namespace
 
 TEST(SaveFile, ListFilesPrefersTheIndex)

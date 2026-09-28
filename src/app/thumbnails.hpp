@@ -30,6 +30,9 @@ class Thumbnails final : public ui::ThumbnailSource
     void request(const std::string &id, const std::string &save);
     // Renders up to budget queued previews.
     void pump(int budget);
+    // Releases every preview's GL objects and forgets queued work; previews
+    // render again at surface_scale once requested.
+    void reset(float surface_scale);
 
     bool thumbnail(const std::string &id, std::uint32_t *texture, float *width,
                    float *height) const override;

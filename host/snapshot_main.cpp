@@ -26,6 +26,7 @@
 #include "games/tenfold/tenfold_scene.hpp"
 #include "ui/gallery.hpp"
 #include "ui/library_scene.hpp"
+#include "ui/settings_scene.hpp"
 #include "ui/theme.hpp"
 
 #include <EGL/egl.h>
@@ -205,6 +206,19 @@ int main(int argc, char **argv)
         scene.draw(list, fonts);
         details.draw(list, fonts);
         ok = write("details-record") && ok;
+    }
+    {
+        // Settings, focused on Resolution set to 4K.
+        ppz::Settings settings;
+        settings.resolution = 2;
+        ppz::ui::SettingsScene settings_scene(settings);
+        for (int row = 0; row < 6; ++row)
+            settings_scene.update(down, 0.016f, cues);
+        for (int frame = 0; frame < 60; ++frame)
+            settings_scene.update(idle, 1.0f / 60.0f, cues);
+        list.clear();
+        settings_scene.draw(list, fonts, "ProsperoPuzzles  \xC2\xB7  Version 01.001.000");
+        ok = write("settings") && ok;
     }
 
     for (int step = 0; step < 4; ++step)

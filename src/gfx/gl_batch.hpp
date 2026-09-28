@@ -27,6 +27,8 @@ class GlBatch
     ~GlBatch();
 
     bool init();
+    // Deletes the programs, vertex arrays and buffers; init() recreates them.
+    void release();
     // Uploads a font atlas as a single-level R8 texture; returns its name.
     std::uint32_t create_font_texture(const Font &font);
     // Uploads RGBA8 pixels as a single-level texture; returns its name.

@@ -33,6 +33,13 @@ void Thumbnails::request(const std::string &id, const std::string &save)
     pending_.emplace_back(id, save);
 }
 
+void Thumbnails::reset(float surface_scale)
+{
+    previews_.clear();
+    pending_.clear();
+    scale_ = surface_scale;
+}
+
 void Thumbnails::pump(int budget)
 {
     while (budget-- > 0 && !pending_.empty())

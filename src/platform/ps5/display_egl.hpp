@@ -9,9 +9,10 @@
 namespace ppz::ps5
 {
 
-// Owns the single EGL display, window surface and GL 4.6 Core context for the
-// process lifetime. ps5-opengl presents fullscreen at the SDK's build-time
-// profile; reopening a presenter is slow, so open once and never recreate.
+// Owns the EGL display, window surface and GL 4.6 Core context. ps5-opengl
+// presents fullscreen; with runtime display modes the size is chosen before
+// EGL starts, so changing it means close() and open() again. Every GL object
+// dies with the context and must be recreated by its owner.
 class Display
 {
   public:
@@ -20,9 +21,13 @@ class Display
     Display &operator=(const Display &) = delete;
     ~Display();
 
-    bool open();
+    // Opens at width x height (1920x1080, 2560x1440 or 3840x2160) when the
+    // SDK supports runtime display modes, else at the SDK's fixed profile.
+    bool open(int width = 1920, int height = 1080);
     bool swap();
     void close();
+    // True when the SDK can change the display size at runtime.
+    static bool supports_display_modes();
 
     int width() const
     {

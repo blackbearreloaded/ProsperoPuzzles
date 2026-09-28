@@ -13,16 +13,16 @@ namespace ppz::ui
 namespace
 {
 
-constexpr float kRowHeight = 92.0f;
-constexpr float kTop = 280.0f;
+constexpr float kRowHeight = 88.0f;
+constexpr float kTop = 262.0f;
 constexpr float kLeft = 420.0f;
 constexpr float kWidth = 1080.0f;
 
 const char *row_label(int row)
 {
-    static const char *const labels[] = {"Music volume",          "Sound effects volume",
-                                         "Interface sounds",      "Reduced motion",
-                                         "Swap Cross and Circle", "Show frame time"};
+    static const char *const labels[] = {
+        "Music volume",          "Sound effects volume", "Interface sounds", "Reduced motion",
+        "Swap Cross and Circle", "Show frame time",      "Resolution"};
     return labels[row];
 }
 
@@ -35,6 +35,7 @@ const char *row_help(int row)
         "Replaces zooms, slides and bounces with quick fades.",
         "Circle confirms and Cross goes back.",
         "Shows rendering time for troubleshooting.",
+        "Rendering size. The PS5 scales the picture to your TV.",
     };
     return help[row];
 }
@@ -87,6 +88,19 @@ SettingsScene::Result SettingsScene::update(const InputFrame &input, float dt,
         }
         return Result::none;
     }
+    if (focus_ == kResolution)
+    {
+        const int count = Settings::kResolutionCount;
+        const int before = settings_.resolution;
+        if (input.nav == Direction::left)
+            settings_.resolution = (settings_.resolution + count - 1) % count;
+        else if (input.nav == Direction::right || input.is_pressed(Action::confirm))
+            settings_.resolution = (settings_.resolution + 1) % count;
+        if (settings_.resolution == before)
+            return Result::none;
+        cues.push_back(audio::Cue::ui_toggle);
+        return Result::changed;
+    }
     const bool toggle = input.is_pressed(Action::confirm) || input.nav == Direction::left ||
                         input.nav == Direction::right;
     if (toggle)
@@ -112,7 +126,7 @@ void SettingsScene::draw(gfx::DrawList &list, const Fonts &fonts, const std::str
               theme::kSafeMargin, 200, theme::kTextBody, theme::kTextOnDarkMuted);
 
     list.rounded_rect(
-        {kLeft - 20, kTop - 20 + highlight_.value * kRowHeight, kWidth + 40, kRowHeight - 8}, 20,
+        {kLeft - 20, kTop - 18 + highlight_.value * kRowHeight, kWidth + 40, kRowHeight - 2}, 20,
         Color::rgb(0xffffff, 0.10f));
     for (int row = 0; row < kRowCount; ++row)
     {
@@ -138,6 +152,18 @@ void SettingsScene::draw(gfx::DrawList &list, const Fonts &fonts, const std::str
             std::snprintf(text, sizeof(text), "%d", value);
             list.text(*fonts.semibold, fonts.semibold_texture, text, right - 360, y + 40, 28,
                       theme::kTextOnDark, Align::right);
+        }
+        else if (row == kResolution)
+        {
+            // A value pill with the choices on either side hinted by arrows.
+            const char *label = Settings::kResolutions[settings_.resolution].label;
+            list.rounded_rect({right - 190, y + 10, 190, 48}, 24, Color::rgb(0xffffff, 0.16f));
+            list.text(*fonts.semibold, fonts.semibold_texture, label, right - 95, y + 44, 26,
+                      theme::kTextOnDark, Align::center);
+            list.text(*fonts.semibold, fonts.semibold_texture, "<", right - 168, y + 43, 24,
+                      theme::kTextOnDarkMuted, Align::center);
+            list.text(*fonts.semibold, fonts.semibold_texture, ">", right - 22, y + 43, 24,
+                      theme::kTextOnDarkMuted, Align::center);
         }
         else
         {

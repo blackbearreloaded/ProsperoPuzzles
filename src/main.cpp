@@ -14,6 +14,7 @@
 #include "core/frame_stats.hpp"
 #include "core/input.hpp"
 #include "core/save_file.hpp"
+#include "core/settings.hpp"
 #include "gfx/draw_list.hpp"
 #include "gfx/font.hpp"
 #include "gfx/gl_batch.hpp"
@@ -51,6 +52,54 @@ void log_heap(std::uint64_t frames)
                   static_cast<unsigned long long>(frames), live, peak, blocks, failures);
 }
 
+// Opens at *resolution (an index into Settings::kResolutions), falling back
+// to 1080p; *resolution reports the mode that opened.
+bool open_display(ppz::ps5::Display &display, int *resolution)
+{
+    using ppz::Settings;
+    const Settings::Resolution &mode = Settings::kResolutions[*resolution];
+    if (display.open(mode.width, mode.height))
+    {
+        ppz::sys::log("[PPZ] display mode %s %dx%d", mode.label, display.width(), display.height());
+        return true;
+    }
+    if (*resolution == 0)
+        return false;
+    ppz::sys::log("[PPZ] display mode %s failed, using 1080p", mode.label);
+    *resolution = 0;
+    return display.open(Settings::kResolutions[0].width, Settings::kResolutions[0].height);
+}
+
+// Changes the display mode: every GL object dies with the context, so the
+// shell and the batch release theirs first and rebuild them afterwards.
+bool restart_display(ppz::ps5::Display &display, ppz::gfx::GlBatch &batch,
+                     const ppz::ui::Fonts &fonts, ppz::app::Shell &shell, int *resolution)
+{
+    using namespace ppz;
+    const std::int64_t start = sys::monotonic_us();
+    shell.release_gpu();
+    batch.release();
+    const GLuint font_textures[] = {fonts.regular_texture, fonts.semibold_texture};
+    glDeleteTextures(2, font_textures);
+    display.close();
+    if (!open_display(display, resolution) || !batch.init())
+        return false;
+    // A fresh context numbers textures from 1 in creation order, so the font
+    // atlases come back under the names every scene already holds.
+    const std::uint32_t regular = batch.create_font_texture(*fonts.regular);
+    const std::uint32_t semibold = batch.create_font_texture(*fonts.semibold);
+    if (regular != fonts.regular_texture || semibold != fonts.semibold_texture)
+    {
+        sys::log("[PPZ] font textures renumbered %u/%u -> %u/%u", fonts.regular_texture,
+                 fonts.semibold_texture, regular, semibold);
+        return false;
+    }
+    shell.restore_gpu(gfx::fit_viewport(display.width(), display.height()).scale);
+    sys::log("[PPZ] display restart %dx%d in %lld ms", display.width(), display.height(),
+             static_cast<long long>((sys::monotonic_us() - start) / 1000));
+    return true;
+}
+
 bool load_font(const char *name, ppz::gfx::Font *font)
 {
     std::string data;
@@ -71,8 +120,11 @@ int main()
     sys::log("[PPZ] entry");
     sys::log("[PPZ] storage dir=%d", save::ensure_directory(kDataRoot) ? 1 : 0);
 
+    // The display opens at the saved resolution (1080p if that fails).
+    const Settings saved = app::Shell::load_settings(kDataRoot);
+    int resolution = ps5::Display::supports_display_modes() ? saved.resolution : 0;
     ps5::Display display;
-    if (!display.open())
+    if (!open_display(display, &resolution))
     {
         sys::log("[PPZ] fatal: display open failed");
         sys::park();
@@ -88,7 +140,7 @@ int main()
     }
     const ui::Fonts fonts{&regular, &semibold, batch.create_font_texture(regular),
                           batch.create_font_texture(semibold)};
-    const gfx::Viewport viewport = gfx::fit_viewport(display.width(), display.height());
+    gfx::Viewport viewport = gfx::fit_viewport(display.width(), display.height());
 
     ps5::Pad pad;
     pad.open();
@@ -110,6 +162,7 @@ int main()
         sys::log("[PPZ] sound rejected %s", error.c_str());
 
     app::Shell shell(batch, fonts, viewport.scale, kDataRoot);
+    shell.set_applied_resolution(resolution);
     const std::string version = read_content_version("/app0/sce_sys/param.json");
     shell.set_version(version);
     sys::log("[PPZ] version %s", version.empty() ? "unknown" : version.c_str());
@@ -157,6 +210,20 @@ int main()
                 music.duck();
         }
         music.pump(dt > 0.05f ? 0.05f : dt);
+        if (shell.take_display_mode_changed())
+        {
+            resolution = shell.settings().resolution;
+            if (!restart_display(display, batch, fonts, shell, &resolution))
+            {
+                sys::log("[PPZ] fatal: display restart failed");
+                sys::park();
+            }
+            viewport = gfx::fit_viewport(display.width(), display.height());
+            shell.set_applied_resolution(resolution);
+            // The restart takes a moment; do not animate across it.
+            last_frame_start = sys::monotonic_us();
+            previous = last_frame_start;
+        }
 
         list.clear();
         shell.draw(list);

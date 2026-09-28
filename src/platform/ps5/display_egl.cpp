@@ -12,6 +12,9 @@
 #include <EGL/eglext.h>
 #include <GL/glcorearb.h>
 #include <ps5_opengl_display.h>
+#if __has_include(<ps5_opengl_display_modes.h>)
+#include <ps5_opengl_display_modes.h> // runtime display modes (one SDK for every TV)
+#endif
 
 namespace ppz::ps5
 {
@@ -69,7 +72,16 @@ void Display::fail(const char *operation)
              static_cast<unsigned>(last_error_));
 }
 
-bool Display::open()
+bool Display::supports_display_modes()
+{
+#ifdef PS5_OPENGL_DYNAMIC_DISPLAY
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool Display::open(int width, int height)
 {
     EGLint major = 0;
     EGLint minor = 0;
@@ -82,6 +94,18 @@ bool Display::open()
         fail("eglGetDisplay");
         return false;
     }
+#ifdef PS5_OPENGL_DYNAMIC_DISPLAY
+    // The mode is fixed while EGL runs: select it before eglInitialize.
+    if (!eglSetDisplayModePS5(display_, width, height))
+    {
+        fail("eglSetDisplayModePS5");
+        if (!eglSetDisplayModePS5(display_, PS5_OPENGL_NATIVE_WIDTH, PS5_OPENGL_NATIVE_HEIGHT))
+            fail("eglSetDisplayModePS5 default");
+    }
+#else
+    (void)width;
+    (void)height;
+#endif
     if (!eglInitialize(display_, &major, &minor))
     {
         fail("eglInitialize");
@@ -151,8 +175,13 @@ bool Display::open()
         close();
         return false;
     }
+#ifndef PS5_OPENGL_DYNAMIC_DISPLAY
     if (width_ != PS5_OPENGL_NATIVE_WIDTH || height_ != PS5_OPENGL_NATIVE_HEIGHT)
         sys::log("[PPZ] warning: surface differs from the SDK display profile");
+#else
+    if (width_ != width || height_ != height)
+        sys::log("[PPZ] warning: surface differs from the requested %dx%d", width, height);
+#endif
     return true;
 }
 
@@ -179,7 +208,8 @@ void Display::close()
     }
     if (surface_ != EGL_NO_SURFACE)
         eglDestroySurface(display_, surface_);
-    eglTerminate(display_);
+    if (!eglTerminate(display_))
+        fail("eglTerminate");
     display_ = EGL_NO_DISPLAY;
     surface_ = EGL_NO_SURFACE;
     context_ = EGL_NO_CONTEXT;
