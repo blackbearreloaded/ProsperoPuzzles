@@ -25,6 +25,7 @@ class SettingsScene
         none,
         changed, // a value changed: apply and save
         close,
+        about, // open the About screen
     };
 
     explicit SettingsScene(Settings &settings);
@@ -42,6 +43,7 @@ class SettingsScene
         kSwapConfirm,
         kShowFps,
         kResolution,
+        kAbout,
         kRowCount,
     };
 

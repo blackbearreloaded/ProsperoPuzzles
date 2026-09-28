@@ -23,7 +23,7 @@ const char *row_label(int row)
     static const char *const labels[] = {
         "Music volume",   "Sound effects volume",  "Interface sounds",
         "Reduced motion", "Swap Cross and Circle", "Show FPS",
-        "Resolution"};
+        "Resolution",     "About ProsperoPuzzles"};
     return labels[row];
 }
 
@@ -37,6 +37,7 @@ const char *row_help(int row)
         "Circle confirms and Cross goes back.",
         "Shows frames per second in the top-right corner.",
         "Rendering size. The PS5 scales the picture to your TV.",
+        "Credits, sources and version.",
     };
     return help[row];
 }
@@ -88,6 +89,13 @@ SettingsScene::Result SettingsScene::update(const InputFrame &input, float dt,
             return Result::changed;
         }
         return Result::none;
+    }
+    if (focus_ == kAbout)
+    {
+        if (!input.is_pressed(Action::confirm))
+            return Result::none;
+        cues.push_back(audio::Cue::ui_select);
+        return Result::about;
     }
     if (focus_ == kResolution)
     {
@@ -153,6 +161,11 @@ void SettingsScene::draw(gfx::DrawList &list, const Fonts &fonts, const std::str
             std::snprintf(text, sizeof(text), "%d", value);
             list.text(*fonts.semibold, fonts.semibold_texture, text, right - 360, y + 40, 28,
                       theme::kTextOnDark, Align::right);
+        }
+        else if (row == kAbout)
+        {
+            list.text(*fonts.semibold, fonts.semibold_texture, ">", right - 22, y + 43, 28,
+                      theme::kTextOnDarkMuted, Align::center);
         }
         else if (row == kResolution)
         {

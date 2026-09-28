@@ -26,6 +26,8 @@
 #include "games/tenfold/tenfold_scene.hpp"
 #include "ui/gallery.hpp"
 #include "ui/library_scene.hpp"
+#include "ui/about_scene.hpp"
+#include "ui/about_scene.hpp"
 #include "ui/settings_scene.hpp"
 #include "ui/theme.hpp"
 
@@ -219,6 +221,9 @@ int main(int argc, char **argv)
         list.clear();
         settings_scene.draw(list, fonts, "ProsperoPuzzles  \xC2\xB7  Version 01.001.000");
         ok = write("settings") && ok;
+        list.clear();
+        ppz::ui::AboutScene().draw(list, fonts, "01.001.000");
+        ok = write("about") && ok;
     }
 
     for (int step = 0; step < 4; ++step)

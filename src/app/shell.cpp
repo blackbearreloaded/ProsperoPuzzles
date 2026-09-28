@@ -353,8 +353,17 @@ void Shell::update(const InputFrame &input, float dt)
         {
             stage_ = Stage::library;
         }
+        else if (result == ui::SettingsScene::Result::about)
+        {
+            stage_ = Stage::about;
+            transition_.start(kTransitionSeconds);
+        }
         break;
     }
+    case Stage::about:
+        if (about_scene_.update(input, cues_))
+            stage_ = Stage::settings;
+        break;
     case Stage::entering:
         library_scene_.update(InputFrame{}, dt, cues_);
         if (!transition_.running)
@@ -422,6 +431,11 @@ void Shell::draw(gfx::DrawList &list) const
         settings_scene_.draw(list, fonts_,
                              version_.empty() ? std::string("ProsperoPuzzles")
                                               : "ProsperoPuzzles  \xC2\xB7  Version " + version_);
+        list.pop_opacity();
+        break;
+    case Stage::about:
+        list.push_opacity(transition_.running ? p : 1.0f);
+        about_scene_.draw(list, fonts_, version_);
         list.pop_opacity();
         break;
     case Stage::entering:

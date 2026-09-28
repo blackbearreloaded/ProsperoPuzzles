@@ -20,7 +20,7 @@ struct Settings
     bool swap_confirm = false; // Circle confirms, Cross goes back
     bool show_fps = true;
     // Display resolution, an index into kResolutions (1080p, 1440p, 4K).
-    int resolution = 0;
+    int resolution = 2;
 
     struct Resolution
     {

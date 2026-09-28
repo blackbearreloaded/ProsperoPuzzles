@@ -102,12 +102,14 @@ TEST(Settings, KeepsTheResolutionAndReadsVersionOneSaves)
     ASSERT_TRUE(ppz::decode_settings(data, &read));
     EXPECT_EQ(read.resolution, ppz::Settings::kResolutionCount - 1);
 
-    // A version 1 save (before Resolution existed) loads with 1080p.
+    // A version 1 save (before Resolution existed) loads with the default, 4K.
+    EXPECT_EQ(ppz::Settings{}.resolution, 2);
+    settings.resolution = 0;
     std::string v1 = ppz::encode_settings(settings);
     v1[0] = 1;
     v1.pop_back();
     ASSERT_TRUE(ppz::decode_settings(v1, &read));
-    EXPECT_EQ(read.resolution, 0);
+    EXPECT_EQ(read.resolution, 2);
     v1[0] = 3;
     EXPECT_FALSE(ppz::decode_settings(v1, &read));
 }

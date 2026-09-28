@@ -14,6 +14,7 @@
 #include "games/records.hpp"
 #include "gfx/draw_list.hpp"
 #include "gfx/gl_batch.hpp"
+#include "ui/about_scene.hpp"
 #include "ui/confetti.hpp"
 #include "ui/howto_card.hpp"
 #include "ui/library_scene.hpp"
@@ -87,6 +88,7 @@ class Shell
         game,
         leaving, // game fades out, library returns
         settings,
+        about,
     };
 
     void launch(const std::string &id);
@@ -120,6 +122,7 @@ class Shell
     bool display_mode_changed_ = false;
     int applied_resolution_ = -1; // resolution the display was opened with
     ui::SettingsScene settings_scene_{settings_};
+    ui::AboutScene about_scene_;
     ui::Menu details_;
     Thumbnails thumbnails_{batch_, fonts_, surface_scale_};
     std::string details_id_;
