@@ -130,8 +130,13 @@ class PuzzleScene : public games::GameScene
     }
     // Starts a puzzle from a fixed seed (tests, previews).
     void new_puzzle(std::uint64_t seed, int size);
-    // Draws only the board card and its contents (library previews).
+    // Draws only the board card and its contents (library previews), and
+    // where that card sits in 1080p coordinates.
     void draw_preview(gfx::DrawList &list) const;
+    gfx::Rect preview_bounds() const
+    {
+        return grid().card;
+    }
 
   protected:
     // ---- rules ----

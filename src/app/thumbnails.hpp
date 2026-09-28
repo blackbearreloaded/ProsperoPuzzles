@@ -5,6 +5,7 @@
 #pragma once
 
 #include "games/sgt/sgt_canvas.hpp"
+#include "gfx/canvas.hpp"
 #include "gfx/gl_batch.hpp"
 #include "ui/library_scene.hpp"
 #include "ui/theme.hpp"
@@ -17,8 +18,9 @@
 namespace ppz::app
 {
 
-// Renders each Tatham puzzle (a fixed demo board, or the saved game when one
-// is in progress) into a small canvas, a few per frame so startup never stalls.
+// Renders each Tatham or native puzzle (a fixed demo board, or the saved game
+// when one is in progress) into a small canvas, a few per frame so startup
+// never stalls.
 class Thumbnails final : public ui::ThumbnailSource
 {
   public:
@@ -35,12 +37,14 @@ class Thumbnails final : public ui::ThumbnailSource
   private:
     struct Preview
     {
-        std::unique_ptr<sgt::CanvasRenderer> renderer;
-        float width = 0.0f; // virtual pixels
+        std::unique_ptr<sgt::CanvasRenderer> renderer; // Tatham puzzles
+        std::unique_ptr<gfx::Canvas> canvas;           // native puzzles
+        float width = 0.0f;                            // virtual pixels
         float height = 0.0f;
     };
 
     void render(const std::string &id, const std::string &save);
+    void render_native(const std::string &id, const std::string &save);
 
     gfx::GlBatch &batch_;
     ui::Fonts fonts_;
