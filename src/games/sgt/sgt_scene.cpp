@@ -165,6 +165,9 @@ void SgtScene::run_pause_item(int item, std::vector<audio::Cue> &cues, SceneExit
         last_status_ = session_->status();
         cues.push_back(audio::Cue::new_game);
         break;
+    case 5:
+        exit = SceneExit::howto;
+        break;
     case 2:
         session_->restart();
         cues.push_back(audio::Cue::restart);
@@ -234,6 +237,7 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
                          {"New game", 1},
                          {"Restart", 2},
                          {"Solve", 3, session_->can_solve()},
+                         {"How to play", 5},
                          {"Back to library", 4}},
                         entry_.display_name);
             if (!input.focus_lost)

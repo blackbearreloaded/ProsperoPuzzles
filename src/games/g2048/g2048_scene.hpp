@@ -67,6 +67,7 @@ class G2048Scene final : public games::GameScene
         kUndo,
         kLibrary,
         kKeepGoing,
+        kHowTo,
     };
 
     void new_game();

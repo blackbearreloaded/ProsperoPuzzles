@@ -313,6 +313,8 @@ games::SceneExit TenfoldScene::update(const InputFrame &input, float dt,
             if (game_.snapshot().game_over)
                 open_game_over();
             break;
+        case kHowTo:
+            return games::SceneExit::howto;
         case kLibrary:
             return games::SceneExit::library;
         default:
@@ -329,6 +331,7 @@ games::SceneExit TenfoldScene::update(const InputFrame &input, float dt,
                    {{"Resume", kResume},
                     {"New game", kNewGame},
                     {"Undo", kUndo, game_.can_undo()},
+                    {"How to play", kHowTo},
                     {"Back to library", kLibrary}},
                    "Tenfold");
         cues.push_back(audio::Cue::ui_pause_open);

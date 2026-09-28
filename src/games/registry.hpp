@@ -35,6 +35,8 @@ struct GameInfo
     gfx::Color accent;
     Kind kind = Kind::sgt;
     const sgt::GameEntry *sgt = nullptr;
+    const char *rules = "";    // How to play paragraphs, '\n' separated
+    const char *controls = ""; // game-specific controls
 };
 
 // All 42 games (40 Tatham puzzles, 2048 and Tenfold), in id order.

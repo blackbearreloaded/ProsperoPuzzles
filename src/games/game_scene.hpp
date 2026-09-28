@@ -18,6 +18,7 @@ enum class SceneExit
 {
     none,
     library, // the player asked to return to the library
+    howto,   // show the How to play card; the game stays as it is
 };
 
 class GameScene

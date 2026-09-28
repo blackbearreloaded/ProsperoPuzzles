@@ -14,6 +14,7 @@
 #include "gfx/draw_list.hpp"
 #include "gfx/gl_batch.hpp"
 #include "ui/confetti.hpp"
+#include "ui/howto_card.hpp"
 #include "ui/library_scene.hpp"
 #include "ui/menu.hpp"
 #include "ui/settings_scene.hpp"
@@ -94,6 +95,7 @@ class Shell
     Thumbnails thumbnails_{batch_, fonts_, surface_scale_};
     std::string details_id_;
     ui::Confetti confetti_;
+    ui::HowToCard howto_;
     std::uint32_t celebrations_ = 0;
 };
 

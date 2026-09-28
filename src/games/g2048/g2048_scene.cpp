@@ -213,6 +213,7 @@ void G2048Scene::open_pause(std::vector<audio::Cue> &cues)
                {{"Resume", kResume},
                 {"New game", kNewGame},
                 {"Undo", kUndo, undo_.has_value()},
+                {"How to play", kHowTo},
                 {"Back to library", kLibrary}},
                "2048");
     cues.push_back(audio::Cue::ui_pause_open);
@@ -305,6 +306,8 @@ games::SceneExit G2048Scene::update(const InputFrame &input, float dt,
             if (game_.snapshot().game_over)
                 open_game_over();
             break;
+        case kHowTo:
+            return games::SceneExit::howto;
         case kLibrary:
             return games::SceneExit::library;
         default:

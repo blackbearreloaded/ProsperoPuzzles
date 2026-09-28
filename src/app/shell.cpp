@@ -146,6 +146,7 @@ void Shell::open_details(const std::string &id)
     if (resumable)
         items.push_back({"New game", 2});
     items.push_back({library_.is_favorite(id) ? "Remove from favorites" : "Add to favorites", 3});
+    items.push_back({"How to play", 4});
     items.push_back({"Close", 0});
     details_.open(game->name, std::move(items), game->objective);
 }
@@ -209,11 +210,18 @@ void Shell::update(const InputFrame &input, float dt)
     transition_.update(dt);
     toast_timer_.update(dt);
     confetti_.update(dt);
+    howto_.animate(dt);
     switch (stage_)
     {
     case Stage::library:
     {
         thumbnails_.pump(2);
+        if (howto_.is_open())
+        {
+            howto_.update(input, dt, cues_);
+            library_scene_.update(InputFrame{}, dt, cues_);
+            break;
+        }
         if (details_.is_open())
         {
             // The details menu owns input; the library keeps animating beneath.
@@ -232,6 +240,12 @@ void Shell::update(const InputFrame &input, float dt)
                 save_library();
                 cues_.push_back(now ? audio::Cue::ui_favorite_on : audio::Cue::ui_favorite_off);
                 details_.close();
+            }
+            else if (choice == 4)
+            {
+                details_.close();
+                if (const games::GameInfo *game = games::find(details_id_))
+                    howto_.open(*game);
             }
             else if (choice == 0 || choice == ui::Menu::kCancelled)
             {
@@ -282,7 +296,17 @@ void Shell::update(const InputFrame &input, float dt)
         break;
     case Stage::game:
     {
+        if (howto_.is_open())
+        {
+            howto_.update(input, dt, cues_);
+            break;
+        }
         const games::SceneExit exit = game_->update(input, dt, cues_);
+        if (exit == games::SceneExit::howto)
+        {
+            if (const games::GameInfo *game = games::find(game_->id()))
+                howto_.open(*game);
+        }
         if (std::find(cues_.begin(), cues_.end(), audio::Cue::complete) != cues_.end())
         {
             const games::GameInfo *game = games::find(game_->id());
@@ -360,6 +384,7 @@ void Shell::draw(gfx::DrawList &list) const
         break;
     }
     confetti_.draw(list);
+    howto_.draw(list, fonts_);
     if (toast_timer_.running)
     {
         const float t = toast_timer_.progress();

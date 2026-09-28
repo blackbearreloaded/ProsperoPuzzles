@@ -71,6 +71,7 @@ class TenfoldScene final : public games::GameScene
         kUndo,
         kLibrary,
         kKeepPlaying,
+        kHowTo,
     };
 
     void new_game();

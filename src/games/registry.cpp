@@ -14,6 +14,19 @@ namespace ppz::games
 namespace
 {
 
+struct HowTo
+{
+    const char *id;
+    const char *rules;
+    const char *controls;
+};
+
+constexpr HowTo kHowTo[] = {
+#define HOWTO(id, rules, controls) {#id, rules, controls},
+#include "games/howto.inc"
+#undef HOWTO
+};
+
 // Curated accents, assigned in A-Z order so neighbouring cards differ.
 constexpr std::uint32_t kAccents[] = {0xf2b179, 0xffd166, 0x4cc9f0, 0x80ed99, 0xc77dff, 0xff8fa3,
                                       0x5ec2b7, 0xf4a261, 0x90be6d, 0x7b9cff, 0xe9c46a, 0xf28482};
@@ -48,6 +61,17 @@ std::vector<GameInfo> build()
                      nullptr});
     std::sort(games.begin(), games.end(),
               [](const GameInfo &a, const GameInfo &b) { return a.id < b.id; });
+    for (GameInfo &game : games)
+    {
+        for (const HowTo &howto : kHowTo)
+        {
+            if (game.id == howto.id)
+            {
+                game.rules = howto.rules;
+                game.controls = howto.controls;
+            }
+        }
+    }
 
     std::vector<LibraryEntry> entries;
     for (const GameInfo &game : games)

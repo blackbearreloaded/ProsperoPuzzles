@@ -14,6 +14,7 @@
 #include "app/thumbnails.hpp"
 #include "core/library.hpp"
 #include "ui/confetti.hpp"
+#include "ui/howto_card.hpp"
 #include "games/registry.hpp"
 #include "games/sgt/sgt_catalog.hpp"
 #include "games/sgt/sgt_scene.hpp"
@@ -243,6 +244,17 @@ int main(int argc, char **argv)
             confetti.update(1.0f / 60.0f);
         confetti.draw(list);
         ok = write("game-confetti") && ok;
+        for (const char *id : {"bridges", "undead"})
+        {
+            ppz::ui::HowToCard card;
+            card.open(*ppz::games::find(id));
+            for (int frame = 0; frame < 40; ++frame)
+                card.animate(1.0f / 60.0f);
+            list.clear();
+            g2048.draw(list);
+            card.draw(list, fonts);
+            ok = write((std::string("howto-") + id).c_str()) && ok;
+        }
     }
     {
         ppz::tenfold::TenfoldScene tenfold(fonts);
