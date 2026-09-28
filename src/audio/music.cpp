@@ -8,8 +8,6 @@
 
 #include "third_party/stb/vorbis.h"
 
-#include <dirent.h>
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -152,16 +150,11 @@ int MusicPlayer::init(Mixer &mixer, const std::string &directory, std::uint64_t 
     mixer.set_stream_gain(0, kBaseGain, 0.0f);
     mixer.set_stream_gain(1, 0.0f, 0.0f);
 
-    if (DIR *dir = ::opendir(directory.c_str()))
+    for (const std::string &name : save::list_files(directory))
     {
-        while (const dirent *entry = ::readdir(dir))
-        {
-            const std::string name = entry->d_name;
-            if (name.size() > 4 && name.compare(name.size() - 4, 4, ".ogg") == 0 &&
-                playlist_.size() < kMaxSongs)
-                playlist_.push_back(name.substr(0, name.size() - 4));
-        }
-        ::closedir(dir);
+        if (name.size() > 4 && name.compare(name.size() - 4, 4, ".ogg") == 0 &&
+            playlist_.size() < kMaxSongs)
+            playlist_.push_back(name.substr(0, name.size() - 4));
     }
     // A fresh order every launch: sort first so the seed alone decides it.
     std::sort(playlist_.begin(), playlist_.end());
@@ -182,7 +175,7 @@ bool MusicPlayer::next_song()
         std::string data;
         auto track = std::make_unique<MusicTrack>();
         std::string error = "unreadable";
-        if (save::read_file(directory_ + "/" + name + ".ogg", &data))
+        if (save::read_file(directory_ + "/" + name + ".ogg", &data, 32u << 20))
             error = track->open(std::move(data));
         if (error.empty())
         {

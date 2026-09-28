@@ -247,6 +247,12 @@ for asset in icon0.png pic0.dds pic1.dds snd0.at9; do
     [[ -f $root/sce_sys/$asset ]] && cp "$root/sce_sys/$asset" "$app/sce_sys/$asset"
 done
 [[ ! -d $root/assets ]] || cp -a "$root/assets" "$app/assets"
+# Directory listing returns nothing under /app0 on the console, so each
+# audio folder carries an index of its files (read by save::list_files).
+for dir in "$app/assets/audio/music" "$app/assets/audio/sfx"; do
+    [[ -d $dir ]] || continue
+    (cd "$dir" && find . -maxdepth 1 -type f ! -name index.txt -printf '%f\n' | LC_ALL=C sort > index.txt)
+done
 
 [[ -f $root/runtime/libc.prx ]] || bash "$root/tools/rebuild-libc.sh"
 (cd "$root/runtime" && sha256sum --check --strict libc.prx.sha256)

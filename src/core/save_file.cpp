@@ -5,6 +5,7 @@
 #include "core/save_file.hpp"
 
 #include <cerrno>
+#include <dirent.h>
 #include <cstring>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -195,6 +196,40 @@ bool ensure_directory(const std::string &path)
         return ::stat(path.c_str(), &info) == 0 && S_ISDIR(info.st_mode);
     }
     return false;
+}
+
+std::vector<std::string> list_files(const std::string &directory)
+{
+    std::vector<std::string> names;
+    std::string index;
+    if (read_file(directory + "/index.txt", &index, 1u << 20))
+    {
+        std::size_t start = 0;
+        while (start < index.size())
+        {
+            std::size_t end = index.find('\n', start);
+            if (end == std::string::npos)
+                end = index.size();
+            std::string name = index.substr(start, end - start);
+            if (!name.empty() && name.back() == '\r')
+                name.pop_back();
+            if (!name.empty() && name.find('/') == std::string::npos && name != "index.txt")
+                names.push_back(std::move(name));
+            start = end + 1;
+        }
+        return names;
+    }
+    if (DIR *dir = ::opendir(directory.c_str()))
+    {
+        while (const dirent *entry = ::readdir(dir))
+        {
+            const std::string name = entry->d_name;
+            if (name != "." && name != ".." && name != "index.txt")
+                names.push_back(name);
+        }
+        ::closedir(dir);
+    }
+    return names;
 }
 
 } // namespace ppz::save

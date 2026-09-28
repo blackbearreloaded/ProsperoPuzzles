@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <dirent.h>
 
 namespace ppz::audio
 {
@@ -160,13 +159,7 @@ void SoundBank::add(const std::string &game, Cue cue, std::vector<float> samples
 SoundBank::Stats SoundBank::load(const std::string &directory)
 {
     Stats stats;
-    DIR *handle = opendir(directory.c_str());
-    if (handle == nullptr)
-        return stats;
-    std::vector<std::string> names;
-    while (const dirent *entry = readdir(handle))
-        names.emplace_back(entry->d_name);
-    closedir(handle);
+    std::vector<std::string> names = save::list_files(directory);
     // Sorted so variation order (_01, _02, ...) is deterministic.
     std::sort(names.begin(), names.end());
     for (const std::string &name : names)

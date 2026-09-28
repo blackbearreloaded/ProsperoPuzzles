@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace ppz::save
 {
@@ -45,6 +46,11 @@ std::string write_atomic(const std::string &path, std::string_view data);
 // Reads a whole file of at most max_bytes. Returns false if it is missing or
 // unreadable.
 bool read_file(const std::string &path, std::string *data, std::size_t max_bytes = 4u << 20);
+
+// Names of the files in a directory. Reads the build-generated index.txt
+// (one name per line) when present, because directory listing returns
+// nothing under /app0 on the console; otherwise lists the directory.
+std::vector<std::string> list_files(const std::string &directory);
 
 // Creates a directory if it does not exist (single level).
 bool ensure_directory(const std::string &path);

@@ -7,9 +7,11 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 namespace
 {
@@ -87,3 +89,19 @@ TEST(Settings, RoundTripsAndClampsVolumes)
 }
 
 } // namespace
+
+TEST(SaveFile, ListFilesPrefersTheIndex)
+{
+    const std::string dir = ::testing::TempDir() + "ppz_list_files";
+    ASSERT_TRUE(ppz::save::ensure_directory(dir));
+    ::unlink((dir + "/index.txt").c_str());
+    ASSERT_EQ(ppz::save::write_atomic(dir + "/b.wav", "x"), "");
+    ASSERT_EQ(ppz::save::write_atomic(dir + "/a.wav", "x"), "");
+    std::vector<std::string> listed = ppz::save::list_files(dir);
+    std::sort(listed.begin(), listed.end());
+    EXPECT_EQ(listed, (std::vector<std::string>{"a.wav", "b.wav"}));
+
+    ASSERT_EQ(ppz::save::write_atomic(dir + "/index.txt", "one.ogg\r\ntwo.ogg\n\n../x\n"), "");
+    EXPECT_EQ(ppz::save::list_files(dir), (std::vector<std::string>{"one.ogg", "two.ogg"}));
+    EXPECT_TRUE(ppz::save::list_files(dir + "/missing").empty());
+}
