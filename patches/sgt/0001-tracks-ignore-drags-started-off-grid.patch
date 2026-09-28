@@ -1,0 +1,21 @@
+Tracks: ignore drags that started off the grid
+
+A mouse press outside the grid records drag_sx = drag_sy = -1. A following
+drag along the same row then took the dy == 0 branch of update_ui_drag,
+started a drag at row -1, and copy_and_apply_drag indexed sflags[-w + x]
+(heap-buffer-overflow under ASan). Keep such drags inert.
+
+--- a/tracks.c
++++ b/tracks.c
+@@ -2079,6 +2079,11 @@
+ static void update_ui_drag(const game_state *state, game_ui *ui, int gx, int gy)
+ {
+     int w = state->p.w, h = state->p.h;
++
++    if (ui->drag_sx < 0 || ui->drag_sy < 0) {
++        ui->dragging = false;          /* the press was off the grid */
++        return;
++    }
+     int dx = abs(ui->drag_sx - gx), dy = abs(ui->drag_sy - gy);
+
+     if (dy == 0) {

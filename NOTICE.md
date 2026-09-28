@@ -5,6 +5,27 @@ GPL-3.0-or-later. It is built on `ps5-native-app-boilerplate`; the notices
 below cover the boilerplate's dependencies and every third-party component the
 project adds.
 
+## Simon Tatham's Portable Puzzle Collection
+
+`src/third_party/sgt-puzzles/` vendors the midend, shared libraries and the 40
+official games of [Simon Tatham's Portable Puzzle
+Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/) from
+`https://git.tartarus.org/simon/puzzles.git` (commit recorded in
+`src/third_party/sgt-puzzles/UPSTREAM`). It is copyright (c) 2004-2024 Simon
+Tatham and the contributors listed in its `LICENCE`, and is distributed under
+the MIT licence reproduced in `src/third_party/sgt-puzzles/LICENCE` and
+`third_party/sgt-puzzles-docs/LICENCE`. Local fixes are kept as patches under
+`patches/sgt/`. The display names, descriptions and objectives in
+`src/games/sgt/upstream_meta.inc` come from its `CMakeLists.txt`.
+
+## OpenGL runtime
+
+The PS5 build statically links the
+[ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl) SDK
+(GPL-3.0-or-later), which contains Mesa (MIT) and OpenGNM PSBC components under
+their own licenses. The SDK is fetched or selected at build time and is not
+stored in this repository; its license texts ship inside the SDK archive.
+
 ## Native build dependencies
 
 The application build uses LLVM/Clang/lld, zlib 1.3.2, and the public
