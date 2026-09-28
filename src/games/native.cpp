@@ -10,6 +10,7 @@
 #include "games/kakuro/kakuro_scene.hpp"
 #include "games/trail/trail_scene.hpp"
 #include "games/linkup/linkup_scene.hpp"
+#include "games/nurikabe/nurikabe_scene.hpp"
 #include "games/sokoban/sokoban_scene.hpp"
 
 namespace ppz::games
@@ -46,6 +47,10 @@ constexpr NativeGame kNative[] = {
     {"trafficjam", "Traffic Jam", "Sliding block escape",
      "Slide the cars and trucks along their lanes to clear a path for the red car.",
      &make<trafficjam::TrafficJamScene>},
+    {"nurikabe", "Nurikabe", "Island and sea logic puzzle",
+     "Shade the sea so every number sits in its own island of that size, with one connected "
+     "sea and no 2 \xC3\x97 2 pools.",
+     &make<nurikabe::NurikabeScene>},
 };
 
 } // namespace
