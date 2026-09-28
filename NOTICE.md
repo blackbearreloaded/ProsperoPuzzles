@@ -18,6 +18,18 @@ the MIT licence reproduced in `src/third_party/sgt-puzzles/LICENCE` and
 `patches/sgt/`. The display names, descriptions and objectives in
 `src/games/sgt/upstream_meta.inc` come from its `CMakeLists.txt`.
 
+## Fonts and font baking
+
+The UI font is [Inter](https://github.com/rsms/inter), Copyright (c) 2016 The
+Inter Project Authors, licensed under the SIL Open Font License 1.1
+(`third_party/fonts/Inter-LICENSE.txt`, also shipped as
+`assets/fonts/Inter-LICENSE.txt`). `assets/fonts/*.ppzfont` are distance-field
+renderings of it produced by `tools/bake-fonts.sh`.
+
+The baker uses [stb_truetype](https://github.com/nothings/stb)
+(`third_party/stb/stb_truetype.h`, public domain or MIT). It is a host-only
+tool and is not linked into the PS5 application.
+
 ## OpenGL runtime
 
 The PS5 build statically links the

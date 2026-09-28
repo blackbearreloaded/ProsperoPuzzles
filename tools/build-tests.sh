@@ -54,7 +54,7 @@ for source in "${sources[@]}"; do
             -I"$root/src/third_party/sgt-puzzles" -MD -MF "$object.d" -c "$source" -o "$object"
     else
         ninja_edge CXX "$object" "${compiler_cache[@]}" "$cxx" "${flags[@]}" -pthread \
-            "${sanitizers[@]}" -DCOMBINED -I"$root/src" -I"$root/tests" \
+            "${sanitizers[@]}" -DCOMBINED "-DPPZ_SOURCE_DIR=\"$root\"" -I"$root/src" -I"$root/tests" \
             -I"$root/src/third_party/sgt-puzzles" \
             -isystem "$gtest/googletest/include" -MD -MF "$object.d" -c "$source" -o "$object"
     fi
