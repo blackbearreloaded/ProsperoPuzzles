@@ -39,7 +39,8 @@ CUES = {
     "solve_reveal": (0.5, 1.5), "complete": (1.5, 4.0), "new_record": (1.0, 2.5),
     "explode": (0.8, 2.0), "game_over": (1.0, 3.0),
 }
-MUSIC_NAMES = re.compile(r"^(menu_main|puzzle_calm_0[1-9]|puzzle_upbeat_0[1-9]|game_[a-z0-9]+)$")
+# Every .ogg in the music folder joins the shuffled playlist; keep names simple.
+MUSIC_NAMES = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]*$")
 SFX_NAME = re.compile(r"^(?:(?P<game>[a-z0-9]+)\.)?(?P<cue>[a-z_]+?)(?:_(?P<n>\d\d))?$")
 
 
@@ -150,7 +151,7 @@ def check_music(report):
         print("note  ffmpeg/ffprobe not found: music is checked by name only")
     for path in files:
         if not MUSIC_NAMES.match(path.stem):
-            report.error(path, "unknown track name (see PLAN.md Appendix A)")
+            report.error(path, "use letters, digits, spaces, '.', '_' or '-' in song names")
         if not have_ffmpeg:
             continue
         info = probe(path)
@@ -166,8 +167,8 @@ def check_music(report):
         elif int(stream.get("channels", 0)) == 1:
             report.warn(path, "mono (stereo is expected for music)")
         seconds = float(info.get("format", {}).get("duration", 0))
-        if not 120 <= seconds <= 240:
-            report.warn(path, f"{seconds:.0f} s long (target 2-4 minutes)")
+        if not 60 <= seconds <= 480:
+            report.warn(path, f"{seconds:.0f} s long (songs are usually 1-8 minutes)")
         tags = {k.upper(): v for k, v in info.get("format", {}).get("tags", {}).items()}
         tags.update({k.upper(): v for k, v in stream.get("tags", {}).items()})
         if "LOOPLENGTH" in tags and "LOOPSTART" not in tags:

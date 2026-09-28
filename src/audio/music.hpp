@@ -1,4 +1,4 @@
-// ProsperoPuzzles - Streamed OGG Vorbis music with crossfades and ducking.
+// ProsperoPuzzles - Background music: a shuffled playlist of OGG Vorbis songs.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -7,10 +7,9 @@
 #include "audio/mixer.hpp"
 #include "audio/stream_ring.hpp"
 
-#include <array>
+#include <cstdint>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <vector>
 
 struct stb_vorbis;
@@ -18,9 +17,9 @@ struct stb_vorbis;
 namespace ppz::audio
 {
 
-// One Vorbis file decoded from memory, looping forever. Loop points come from
-// the LOOPSTART / LOOPLENGTH comments (in samples); without them the whole
-// file loops.
+// One Vorbis file decoded from memory. By default it loops forever (LOOPSTART
+// / LOOPLENGTH comments pick the loop, else the whole file); a playlist song
+// plays once instead and decode() reports the end by returning short.
 class MusicTrack
 {
   public:
@@ -28,8 +27,12 @@ class MusicTrack
 
     // Takes the whole file; returns an error, or "" on success. 48 kHz only.
     std::string open(std::string data);
-    // Decodes stereo frames into out (mono is duplicated). Always fills frames
-    // unless the stream is broken, in which case it returns fewer.
+    void set_looping(bool looping)
+    {
+        looping_ = looping;
+    }
+    // Decodes stereo frames into out (mono is duplicated). Returns fewer than
+    // frames only at the end of a non-looping song or on a broken stream.
     int decode(float *out, int frames);
 
     unsigned loop_start() const
@@ -45,70 +48,61 @@ class MusicTrack
     std::string data_;
     stb_vorbis *vorbis_ = nullptr;
     int channels_ = 0;
+    bool looping_ = true;
     unsigned position_ = 0; // sample frames decoded so far
     unsigned loop_start_ = 0;
     unsigned loop_end_ = 0; // exclusive
     std::vector<float> scratch_;
 };
 
-// Picks and plays the soundtrack (PLAN.md Appendix A): menu_main in the
-// library, game_<id> when a game has its own track, otherwise the upbeat or
-// calm playlist in rotation. Two decks crossfade over 1.5 s; completion stings
-// duck the music by 6 dB. Decoding runs on the caller's thread (pump, once
-// per frame) and keeps each deck about 0.7 s ahead of the audio thread.
+// Plays every song in the music folder one after another, with a short pause
+// between them, then starts over. The order is shuffled once per app launch.
+// Decoding runs on the caller's thread (pump, once per frame) about 0.7 s
+// ahead of the audio thread; completion stings duck the music by 6 dB.
 class MusicPlayer
 {
   public:
     MusicPlayer();
 
-    // Finds the tracks present in directory and attaches both decks to the
-    // mixer (call before the audio thread starts). Returns how many were found.
-    int init(Mixer &mixer, const std::string &directory);
+    // Lists the songs in directory (*.ogg, in a shuffled order from seed) and
+    // attaches the music stream to the mixer (call before the audio thread
+    // starts). Returns how many songs were found.
+    int init(Mixer &mixer, const std::string &directory, std::uint64_t seed);
 
-    // "" for the library; otherwise the game being played.
-    void set_context(std::string_view game_id);
     // Lowers the music under a sting for a moment.
     void duck();
     void pump(float dt);
 
+    // The song playing now (file name without .ogg), or "".
     const std::string &current() const
     {
         return current_;
     }
-    int tracks() const
+    int songs() const
     {
-        return static_cast<int>(available_.size());
+        return static_cast<int>(playlist_.size());
+    }
+    // The shuffled play order (file names without .ogg).
+    const std::vector<std::string> &playlist() const
+    {
+        return playlist_;
     }
 
-    // Track names (without .ogg) that belong to a context; public for tests.
-    static bool upbeat(std::string_view game_id);
-
   private:
-    struct Deck
-    {
-        std::unique_ptr<StreamRing> ring = std::make_unique<StreamRing>(1u << 16);
-        std::unique_ptr<StreamRing> retired; // swapped out, freed after a moment
-        float retire = -1.0f;
-        std::unique_ptr<MusicTrack> track;
-        std::string name;
-        float release = -1.0f; // seconds until the faded-out track is freed
-    };
-
-    bool has(const std::string &name) const;
-    std::string choose(std::string_view game_id);
-    void play(const std::string &name);
-    void apply_gains(float seconds);
+    // Opens the next playable song; false when none of them can be played.
+    bool next_song();
+    void apply_gain(float seconds);
 
     Mixer *mixer_ = nullptr;
     std::string directory_;
-    std::vector<std::string> available_;
-    std::array<Deck, Mixer::kStreams> decks_;
-    int active_ = -1;
-    std::string context_ = "\x01"; // nothing chosen yet
+    std::vector<std::string> playlist_;
+    std::size_t next_ = 0; // index in playlist_ of the song after this one
+    StreamRing ring_{1u << 16};
+    std::unique_ptr<MusicTrack> track_;
     std::string current_;
-    int calm_turn_ = 0;
-    int upbeat_turn_ = 0;
-    float duck_ = 0.0f; // seconds of ducking left
+    int gap_frames_ = 0; // silence still to write before the next song
+    int failures_ = 0;   // songs in a row that could not be opened
+    float duck_ = 0.0f;  // seconds of ducking left
     std::vector<float> buffer_;
 };
 

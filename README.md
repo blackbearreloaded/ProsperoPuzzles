@@ -58,9 +58,14 @@ Useful targets: `make lint`, `make check`, `make host-snapshots`,
 
 ## Audio assets
 
-Put sound effects in `assets/audio/sfx/` and music in `assets/audio/music/`,
-named as in PLAN.md Appendix A, then run `make audio-check`. Missing effects use
-synthesized placeholders; missing music is silent.
+Sound effects live in `assets/audio/sfx/`, named as in PLAN.md Appendix A
+(`tools/process-sfx.py` trims and levels raw clips). Missing effects use
+synthesized placeholders.
+
+Background music is a playlist: every song in `assets/audio/music/` plays one
+after another in an order shuffled at each launch, then the list starts over.
+Convert songs from any tool with `tools/prepare-music.sh <folder>` (OGG 48 kHz,
+-18 LUFS). No songs means no music. Run `make audio-check` after changes.
 
 ## License
 

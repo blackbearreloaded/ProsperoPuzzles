@@ -108,43 +108,62 @@ TEST(Mixer, StreamsPlayOnTheMusicBusAndRampGain)
     EXPECT_GT(mixer.stream_underruns(), 0u); // the ring ran dry along the way
 }
 
-TEST(MusicPlayer, ChoosesTracksByContextAndCrossfades)
+TEST(MusicPlayer, PlaysEverySongInTurnThenStartsOver)
 {
     Mixer mixer;
     MusicPlayer player;
-    EXPECT_EQ(player.init(mixer, kMusic), 2); // menu_main and puzzle_calm_02
-    player.set_context("");
-    EXPECT_EQ(player.current(), "menu_main");
-    player.set_context("net");
-    EXPECT_EQ(player.current(), "game_net"); // its own track wins
-    player.set_context("solo");
-    EXPECT_EQ(player.current(), "puzzle_calm_02");
-    player.set_context("mines"); // upbeat list is empty: falls back to calm
-    EXPECT_EQ(player.current(), "puzzle_calm_02");
-    EXPECT_TRUE(MusicPlayer::upbeat("g2048"));
-    EXPECT_FALSE(MusicPlayer::upbeat("solo"));
+    // Four files; wrong_rate.ogg is listed but skipped when its turn comes.
+    ASSERT_EQ(player.init(mixer, kMusic, 7), 4);
+    std::vector<std::string> playable;
+    for (const std::string &song : player.playlist())
+        if (song != "wrong_rate")
+            playable.push_back(song);
+    ASSERT_EQ(playable.size(), 3u);
 
-    // Two seconds of audio with the decoder pumped each "frame": music plays.
+    // About 20 s of playback, pumped once per 60 Hz frame like the app.
+    std::vector<std::string> heard;
     std::vector<std::int16_t> out(800 * 2);
     double loudest = 0.0;
-    for (int frame = 0; frame < 120; ++frame)
+    for (int frame = 0; frame < 60 * 20; ++frame)
     {
         player.pump(1.0f / 60.0f);
         mixer.render(out.data(), 800);
         loudest = std::max(loudest, peak(out));
+        if (!player.current().empty() && (heard.empty() || heard.back() != player.current()))
+            heard.push_back(player.current());
     }
     EXPECT_GT(loudest, 0.05);
+    // Songs follow the shuffled order and the list starts over after the last.
+    ASSERT_GE(heard.size(), 5u);
+    for (std::size_t i = 0; i < heard.size(); ++i)
+        EXPECT_EQ(heard[i], playable[i % playable.size()]) << "song " << i;
     player.duck();
     player.pump(0.5f);
 }
 
-TEST(MusicPlayer, SilentWithoutTracks)
+TEST(MusicPlayer, ShuffleChangesWithTheSeed)
+{
+    Mixer mixer;
+    MusicPlayer a;
+    MusicPlayer b;
+    a.init(mixer, kMusic, 1);
+    b.init(mixer, kMusic, 1);
+    EXPECT_EQ(a.playlist(), b.playlist()); // same launch seed, same order
+    bool differs = false;
+    for (std::uint64_t seed = 2; seed < 40 && !differs; ++seed)
+    {
+        MusicPlayer c;
+        c.init(mixer, kMusic, seed);
+        differs = c.playlist() != a.playlist();
+    }
+    EXPECT_TRUE(differs); // another launch gets another order
+}
+
+TEST(MusicPlayer, SilentWithoutSongs)
 {
     Mixer mixer;
     MusicPlayer player;
-    EXPECT_EQ(player.init(mixer, "/nonexistent"), 0);
-    player.set_context("");
-    player.set_context("solo");
-    EXPECT_EQ(player.current(), "");
+    EXPECT_EQ(player.init(mixer, "/nonexistent", 3), 0);
     player.pump(0.016f);
+    EXPECT_EQ(player.current(), "");
 }

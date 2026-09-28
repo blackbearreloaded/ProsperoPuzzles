@@ -93,10 +93,13 @@ int main()
     pad.open();
     InputTracker tracker;
     audio::Mixer mixer;
-    // Music decks attach to the mixer before the audio thread starts.
+    // The music stream attaches to the mixer before the audio thread starts.
+    // The playlist order is shuffled from the launch time, so it differs
+    // every time the app opens.
     audio::MusicPlayer music;
-    const int tracks = music.init(mixer, std::string(kAssets) + "/audio/music");
-    sys::log("[PPZ] music tracks=%d", tracks);
+    const int tracks = music.init(mixer, std::string(kAssets) + "/audio/music",
+                                  static_cast<std::uint64_t>(sys::monotonic_us()));
+    sys::log("[PPZ] music songs=%d", tracks);
     ps5::AudioOut audio_out;
     audio_out.start(mixer);
     audio::SoundBank sounds;
@@ -149,7 +152,6 @@ int main()
             if (cue == audio::Cue::complete)
                 music.duck();
         }
-        music.set_context(game);
         music.pump(dt > 0.05f ? 0.05f : dt);
 
         list.clear();

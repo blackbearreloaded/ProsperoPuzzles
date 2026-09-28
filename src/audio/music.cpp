@@ -1,4 +1,4 @@
-// ProsperoPuzzles - Streamed OGG Vorbis music with crossfades and ducking.
+// ProsperoPuzzles - Background music: a shuffled playlist of OGG Vorbis songs.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -8,7 +8,7 @@
 
 #include "third_party/stb/vorbis.h"
 
-#include <sys/stat.h>
+#include <dirent.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -21,12 +21,12 @@ namespace ppz::audio
 namespace
 {
 
-constexpr float kCrossfadeSeconds = 1.5f;
 constexpr float kDuckSeconds = 2.5f;
 constexpr float kDuckGain = 0.5f;     // -6 dB
+constexpr float kGapSeconds = 1.5f;   // quiet breath between songs
 constexpr std::size_t kAhead = 32768; // frames kept buffered (~0.7 s)
 constexpr int kChunk = 2048;          // frames decoded per step
-constexpr int kPlaylist = 9;          // puzzle_calm_01 .. _09 and the like
+constexpr std::size_t kMaxSongs = 64;
 
 bool comment_value(const stb_vorbis_comment &comments, const char *key, unsigned *value)
 {
@@ -43,19 +43,13 @@ bool comment_value(const stb_vorbis_comment &comments, const char *key, unsigned
     return false;
 }
 
-bool file_exists(const std::string &path)
+// splitmix64: the shuffle needs no cryptographic quality, just a fresh order.
+std::uint64_t next_random(std::uint64_t &state)
 {
-    struct stat info
-    {
-    };
-    return ::stat(path.c_str(), &info) == 0 && S_ISREG(info.st_mode);
-}
-
-std::string numbered(const char *stem, int n)
-{
-    char name[48];
-    std::snprintf(name, sizeof(name), "%s_%02d", stem, n);
-    return name;
+    std::uint64_t z = (state += 0x9e3779b97f4a7c15ULL);
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+    return z ^ (z >> 31);
 }
 
 } // namespace
@@ -105,6 +99,8 @@ int MusicTrack::decode(float *out, int frames)
     {
         if (position_ >= loop_end_)
         {
+            if (!looping_)
+                return done; // the song is over
             if (stb_vorbis_seek(vorbis_, loop_start_) == 0)
                 return done;
             position_ = loop_start_;
@@ -126,8 +122,8 @@ int MusicTrack::decode(float *out, int frames)
         }
         if (got <= 0)
         {
-            // Past the real end (a LOOPLENGTH beyond the data): wrap now.
-            if (++stalls > 2)
+            // Past the real end (a LOOPLENGTH beyond the data): end or wrap now.
+            if (!looping_ || ++stalls > 2)
                 return done;
             position_ = loop_end_;
             continue;
@@ -145,174 +141,107 @@ MusicPlayer::MusicPlayer() : buffer_(static_cast<std::size_t>(kChunk) * 2)
 {
 }
 
-int MusicPlayer::init(Mixer &mixer, const std::string &directory)
+int MusicPlayer::init(Mixer &mixer, const std::string &directory, std::uint64_t seed)
 {
     mixer_ = &mixer;
     directory_ = directory;
-    for (std::size_t slot = 0; slot < decks_.size(); ++slot)
-    {
-        mixer.attach_stream(slot, decks_[slot].ring.get());
-        mixer.set_stream_gain(slot, 0.0f, 0.0f);
-    }
-    std::vector<std::string> candidates = {"menu_main"};
-    for (int n = 1; n <= kPlaylist; ++n)
-    {
-        candidates.push_back(numbered("puzzle_calm", n));
-        candidates.push_back(numbered("puzzle_upbeat", n));
-    }
-    for (const std::string &name : candidates)
-    {
-        if (file_exists(directory_ + "/" + name + ".ogg"))
-            available_.push_back(name);
-    }
-    return static_cast<int>(available_.size());
-}
+    mixer.attach_stream(0, &ring_);
+    mixer.set_stream_gain(0, 1.0f, 0.0f);
+    mixer.set_stream_gain(1, 0.0f, 0.0f);
 
-bool MusicPlayer::has(const std::string &name) const
-{
-    return std::find(available_.begin(), available_.end(), name) != available_.end();
-}
-
-bool MusicPlayer::upbeat(std::string_view game_id)
-{
-    constexpr std::string_view kUpbeat[] = {"g2048", "tenfold", "samegame",
-                                            "flood", "inertia", "mines"};
-    return std::find(std::begin(kUpbeat), std::end(kUpbeat), game_id) != std::end(kUpbeat);
-}
-
-std::string MusicPlayer::choose(std::string_view game_id)
-{
-    if (game_id.empty())
-        return has("menu_main") ? "menu_main" : std::string();
-    const std::string own = "game_" + std::string(game_id);
-    if (has(own) || file_exists(directory_ + "/" + own + ".ogg"))
-        return own;
-    // Rotate through a playlist; fall back to the other one if it is empty.
-    for (int pass = 0; pass < 2; ++pass)
+    if (DIR *dir = ::opendir(directory.c_str()))
     {
-        const bool lively = upbeat(game_id) != (pass == 1);
-        const char *stem = lively ? "puzzle_upbeat" : "puzzle_calm";
-        int &turn = lively ? upbeat_turn_ : calm_turn_;
-        for (int tries = 0; tries < kPlaylist; ++tries)
+        while (const dirent *entry = ::readdir(dir))
         {
-            const std::string name = numbered(stem, turn % kPlaylist + 1);
-            turn = (turn + 1) % kPlaylist;
-            if (has(name))
-                return name;
+            const std::string name = entry->d_name;
+            if (name.size() > 4 && name.compare(name.size() - 4, 4, ".ogg") == 0 &&
+                playlist_.size() < kMaxSongs)
+                playlist_.push_back(name.substr(0, name.size() - 4));
         }
+        ::closedir(dir);
     }
-    return has("menu_main") ? "menu_main" : std::string();
+    // A fresh order every launch: sort first so the seed alone decides it.
+    std::sort(playlist_.begin(), playlist_.end());
+    std::uint64_t state = seed;
+    for (std::size_t i = playlist_.size(); i > 1; --i)
+        std::swap(playlist_[i - 1], playlist_[next_random(state) % i]);
+    return static_cast<int>(playlist_.size());
 }
 
-void MusicPlayer::set_context(std::string_view game_id)
+bool MusicPlayer::next_song()
 {
-    if (mixer_ == nullptr || game_id == context_)
-        return;
-    context_ = std::string(game_id);
-    play(choose(game_id));
-}
-
-void MusicPlayer::play(const std::string &name)
-{
-    if (name == current_)
-        return;
-    current_ = name;
-    if (active_ >= 0)
-        decks_[static_cast<std::size_t>(active_)].release = kCrossfadeSeconds + 0.1f;
-    if (name.empty())
+    track_.reset();
+    current_.clear();
+    while (!playlist_.empty() && failures_ < static_cast<int>(playlist_.size()))
     {
-        active_ = -1;
-        apply_gains(kCrossfadeSeconds);
-        return;
+        const std::string name = playlist_[next_];
+        next_ = (next_ + 1) % playlist_.size();
+        std::string data;
+        auto track = std::make_unique<MusicTrack>();
+        std::string error = "unreadable";
+        if (save::read_file(directory_ + "/" + name + ".ogg", &data))
+            error = track->open(std::move(data));
+        if (error.empty())
+        {
+            track->set_looping(false);
+            track_ = std::move(track);
+            current_ = name;
+            failures_ = 0;
+            return true;
+        }
+        std::fprintf(stderr, "[PPZ] music %s skipped: %s\n", name.c_str(), error.c_str());
+        ++failures_;
     }
-    // Use the deck that is not playing; it may still hold a fading track.
-    const int slot = active_ == 0 ? 1 : 0;
-    Deck &deck = decks_[static_cast<std::size_t>(slot)];
-    std::string data;
-    auto track = std::make_unique<MusicTrack>();
-    std::string error = "unreadable";
-    if (save::read_file(directory_ + "/" + name + ".ogg", &data))
-        error = track->open(std::move(data));
-    if (!error.empty())
-    {
-        std::fprintf(stderr, "[PPZ] music %s rejected: %s\n", name.c_str(), error.c_str());
-        active_ = -1;
-        apply_gains(kCrossfadeSeconds);
-        return;
-    }
-    // A fresh ring: whatever the old track left buffered never plays.
-    deck.retired = std::move(deck.ring);
-    deck.retire = 0.5f;
-    deck.ring = std::make_unique<StreamRing>(1u << 16);
-    mixer_->swap_stream(static_cast<std::size_t>(slot), deck.ring.get());
-    deck.track = std::move(track);
-    deck.name = name;
-    deck.release = -1.0f;
-    active_ = slot;
-    pump(0.0f); // prefill before the fade starts
-    apply_gains(kCrossfadeSeconds);
+    return false;
 }
 
 void MusicPlayer::duck()
 {
     duck_ = kDuckSeconds;
-    apply_gains(0.15f);
+    apply_gain(0.15f);
 }
 
-void MusicPlayer::apply_gains(float seconds)
+void MusicPlayer::apply_gain(float seconds)
 {
-    if (mixer_ == nullptr)
-        return;
-    for (std::size_t slot = 0; slot < decks_.size(); ++slot)
-    {
-        const bool playing = static_cast<int>(slot) == active_;
-        const float gain = playing ? (duck_ > 0.0f ? kDuckGain : 1.0f) : 0.0f;
-        mixer_->set_stream_gain(slot, gain, seconds);
-    }
+    if (mixer_ != nullptr)
+        mixer_->set_stream_gain(0, duck_ > 0.0f ? kDuckGain : 1.0f, seconds);
 }
 
 void MusicPlayer::pump(float dt)
 {
+    if (mixer_ == nullptr || playlist_.empty())
+        return;
     if (duck_ > 0.0f)
     {
         duck_ -= dt;
         if (duck_ <= 0.0f)
-            apply_gains(0.8f); // swell back
+            apply_gain(0.8f); // swell back
     }
-    for (Deck &deck : decks_)
+    // Keep the ring about 0.7 s ahead: the song, then a breath of silence,
+    // then the next song, forever.
+    while (ring_.available() < kAhead)
     {
-        if (deck.retire >= 0.0f)
+        const int room = static_cast<int>(std::min<std::size_t>(kChunk, ring_.space()));
+        if (room <= 0)
+            break;
+        if (gap_frames_ > 0)
         {
-            deck.retire -= dt;
-            if (deck.retire < 0.0f)
-                deck.retired.reset();
-        }
-        if (deck.release >= 0.0f)
-        {
-            deck.release -= dt;
-            if (deck.release < 0.0f)
-            {
-                // Faded out: stop decoding. The ring drains into silence.
-                deck.track.reset();
-                deck.name.clear();
-                deck.release = -1.0f;
-                continue;
-            }
-        }
-        if (!deck.track)
+            const int frames = std::min(room, gap_frames_);
+            std::fill(buffer_.begin(), buffer_.begin() + frames * 2, 0.0f);
+            ring_.write(buffer_.data(), static_cast<std::size_t>(frames));
+            gap_frames_ -= frames;
             continue;
-        while (deck.ring->available() < kAhead)
+        }
+        if (!track_ && !next_song())
+            break; // nothing playable
+        const int got = track_->decode(buffer_.data(), room);
+        if (got > 0)
+            ring_.write(buffer_.data(), static_cast<std::size_t>(got));
+        if (got < room)
         {
-            const int frames = static_cast<int>(std::min<std::size_t>(kChunk, deck.ring->space()));
-            if (frames <= 0)
-                break;
-            const int got = deck.track->decode(buffer_.data(), frames);
-            if (got <= 0)
-            {
-                deck.track.reset(); // broken stream: give up on it
-                break;
-            }
-            deck.ring->write(buffer_.data(), static_cast<std::size_t>(got));
+            // The song ended: pause briefly, then the next one.
+            track_.reset();
+            gap_frames_ = static_cast<int>(kGapSeconds * static_cast<float>(kSampleRate));
         }
     }
 }
