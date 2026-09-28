@@ -20,6 +20,8 @@ extern int sceKernelUsleep(uint32_t microseconds);
 __attribute__((constructor)) static void ppz_open_log(void)
 {
     mkdir(PPZ_DATA_DIR, 0755);
+    /* Keep the previous launch's log for post-close inspection. */
+    rename(PPZ_LOG_PATH, PPZ_DATA_DIR "/app.prev.log");
     FILE *stream = freopen(PPZ_LOG_PATH, "w", stdout);
     /* Start a fresh receipt, then make both streams append-only and unbuffered
      * so the log survives a shell close or a GPU fail-stop. */
