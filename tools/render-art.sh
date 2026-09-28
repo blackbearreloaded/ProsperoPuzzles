@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ProsperoPuzzles - Renders the system presentation art with the app renderer
 # and converts it into sce_sys/icon0.png, pic0.dds and pic1.dds.
+# Note: sce_sys now holds hand-made artwork; running this replaces it.
 # Copyright (C) 2026 BlackBearReloaded
 # SPDX-License-Identifier: GPL-3.0-or-later
 #

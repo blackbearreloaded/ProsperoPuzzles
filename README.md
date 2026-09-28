@@ -3,9 +3,10 @@
 A native PS5 homebrew collection of polished puzzle games, built for the
 DualSense controller.
 
-- **42 games in one library:** the 40 puzzles of
-  [Simon Tatham's Portable Puzzle Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/)
-  plus **2048** and **Tenfold**.
+- **50 games in one library:** the 40 puzzles of
+  [Simon Tatham's Portable Puzzle Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/),
+  **2048**, **Tenfold**, and eight native puzzles: **Color Sort**, **Crowns**,
+  **Kakuro**, **Link Up**, **Nurikabe**, **Sokoban**, **Traffic Jam** and **Trail**.
 - **Alphabetical library with favorites:** every game is listed A–Z, and
   favorites are pinned first. Cards show a live preview of each board.
 - **Console-grade presentation:** anti-aliased OpenGL 4.6 rendering, one modern
@@ -26,9 +27,9 @@ are added.
 | Build | Native C++20 pipeline from `ps5-native-app-boilerplate` |
 | Rendering | OpenGL 4.6 Core via `ps5-opengl`, 60 Hz, verified on hardware |
 | Library | A–Z grid, favorites, filters, letter jumps, board previews, details, settings |
-| Games | 2048, Tenfold, and all 40 Tatham puzzles, each with How to play |
+| Games | 2048, Tenfold, all 40 Tatham puzzles and 8 native puzzles, each with How to play |
 | Audio | Mixer, WAV cues with placeholders, OGG Vorbis music streaming |
-| Presentation | Icon and home backgrounds rendered by the app (`tools/render-art.sh`) |
+| Presentation | Custom icon and home backgrounds in `sce_sys/` |
 
 ## Building (Linux or WSL)
 

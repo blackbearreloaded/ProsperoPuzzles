@@ -16,4 +16,7 @@
 - Completion confetti (lighter with Reduced motion).
 - Mixer with synthesized placeholder cues; OGG Vorbis music streaming with
   crossfades, loop points and ducking; `make audio-check`.
-- Icon and home backgrounds rendered by the app.
+- Eight native puzzles on a shared kit (generated boards, sizes, undo/redo,
+  timer, best times): Color Sort, Crowns, Kakuro, Link Up, Nurikabe, Sokoban,
+  Traffic Jam and Trail — 50 games in all.
+- New icon and home backgrounds.
