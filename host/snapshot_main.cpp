@@ -13,6 +13,8 @@
 #include "gfx/gl_program.hpp"
 #include "app/thumbnails.hpp"
 #include "art.hpp"
+#include "games/kit/puzzle_scene.hpp"
+#include "games/native.hpp"
 #include "core/library.hpp"
 #include "ui/confetti.hpp"
 #include "ui/howto_card.hpp"
@@ -233,6 +235,38 @@ int main(int argc, char **argv)
         list.clear();
         game.draw(list);
         ok = write((std::string("game-") + id).c_str()) && ok;
+    }
+
+    // Native puzzles: a fixed medium board after a few moves, and the pause menu.
+    for (const ppz::games::NativeGame &native : ppz::games::native_games())
+    {
+        const std::string only = std::getenv("PPZ_NATIVE") ? std::getenv("PPZ_NATIVE") : "";
+        if (!only.empty() && only != native.id)
+            continue;
+        auto scene = native.create(fonts);
+        scene->start({}, {});
+        auto *puzzle = dynamic_cast<ppz::kit::PuzzleScene *>(scene.get());
+        if (puzzle != nullptr)
+            puzzle->new_puzzle(20260928, 1);
+        const ppz::Direction steps[] = {ppz::Direction::right, ppz::Direction::down,
+                                        ppz::Direction::left, ppz::Direction::down};
+        for (ppz::Direction d : steps)
+        {
+            ppz::InputFrame f;
+            f.nav = d;
+            scene->update(f, 0.016f, cues);
+            ppz::InputFrame press;
+            press.pressed = ppz::action_bit(ppz::Action::confirm);
+            scene->update(press, 0.016f, cues);
+            for (int frame = 0; frame < 20; ++frame)
+                scene->update(idle, 1.0f / 60.0f, cues);
+        }
+        for (int frame = 0; frame < 60; ++frame)
+            scene->update(idle, 1.0f / 60.0f, cues);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        list.clear();
+        scene->draw(list);
+        ok = write((std::string("native-") + native.id).c_str()) && ok;
     }
 
     // Every Tatham puzzle as it first appears (PPZ_SNAPSHOT_ALL=1; for skin review).

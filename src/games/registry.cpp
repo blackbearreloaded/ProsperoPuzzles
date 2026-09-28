@@ -59,6 +59,17 @@ std::vector<GameInfo> build()
                      {},
                      Kind::tenfold,
                      nullptr});
+    for (const NativeGame &native : native_games())
+    {
+        GameInfo info;
+        info.id = native.id;
+        info.name = native.name;
+        info.tagline = native.tagline;
+        info.objective = native.objective;
+        info.kind = Kind::native;
+        info.create = native.create;
+        games.push_back(info);
+    }
     std::sort(games.begin(), games.end(),
               [](const GameInfo &a, const GameInfo &b) { return a.id < b.id; });
     for (GameInfo &game : games)

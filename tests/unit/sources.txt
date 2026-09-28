@@ -16,6 +16,9 @@ src/gfx/font.cpp
 src/gfx/triangulate.cpp
 src/games/g2048/g2048_scene.cpp
 src/games/registry.cpp
+src/games/native.cpp
+src/games/kit/*.cpp
+src/games/crowns/*.cpp
 src/games/tenfold/tenfold_scene.cpp
 src/ui/confetti.cpp
 src/ui/howto_card.cpp

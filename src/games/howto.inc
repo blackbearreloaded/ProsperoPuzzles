@@ -6,6 +6,45 @@
 // separated by '\n'; each becomes a paragraph on the How to play card.
 
 // HOWTO(id, rules, controls)
+HOWTO(colorsort,
+      "Each tube holds a stack of coloured balls. Pour the top balls of one tube onto another "
+      "tube whose top ball has the same colour, or into an empty tube, as long as there is room."
+      "\nSort the balls so every full tube holds a single colour.",
+      "Move between tubes with the D-pad. Cross lifts the top balls; Cross on another tube pours "
+      "them. Circle puts them back.")
+HOWTO(crowns,
+      "Place exactly one crown in every row, every column and every colour region.\nTwo crowns "
+      "may never touch, not even diagonally.",
+      "Cross places or removes a crown. Square marks a cell you have ruled out.")
+HOWTO(kakuro,
+      "Fill the white cells with digits 1 to 9. Each clue gives the sum of the run of cells to "
+      "its right or below it.\nA digit may not repeat within a run.",
+      "Cross opens the digit picker on the selected cell; pick with the D-pad and Cross. Square "
+      "clears the cell.")
+HOWTO(linkup,
+      "Connect each pair of matching coloured dots with a path. Paths run between neighbouring "
+      "cells and may not cross or branch.\nFill every cell of the board to finish.",
+      "Cross on a dot or a path end picks up that colour; the D-pad then draws. Moving back over "
+      "the path shortens it. Cross or Circle lets go; Square clears the colour under the cursor.")
+HOWTO(nurikabe,
+      "Shade cells to make the sea. Every number sits in its own island of exactly that many "
+      "cells; islands never touch each other along an edge.\nThe sea must be one connected "
+      "piece, with no 2 \xC3\x97 2 block of sea anywhere.",
+      "Cross shades a cell as sea or clears it. Square marks a cell as island.")
+HOWTO(sokoban,
+      "You are the warehouse keeper. Push every crate onto a target square.\nCrates can only be "
+      "pushed, never pulled, and only one at a time, so plan ahead.",
+      "The D-pad walks and pushes. L1 undoes a step; Restart from the menu resets the room.")
+HOWTO(trafficjam,
+      "Cars and trucks slide only forwards and backwards along their own lane.\nClear a path "
+      "and drive the red car out through the exit on the right.",
+      "Move to a vehicle and press Cross to grab it, then slide it with the D-pad. Cross or "
+      "Circle lets go.")
+HOWTO(trail,
+      "Draw one path that visits every cell exactly once, moving up, down, left or right.\nThe "
+      "path starts at 1 and must pass the numbered cells in order, ending on the highest number.",
+      "The path grows from its end as you move with the D-pad; step back onto it to erase. "
+      "Cross on a path cell cuts the path back to that cell.")
 HOWTO(blackbox,
       "Balls are hidden inside the box. Fire a laser from any edge: it may pass straight through, "
       "be absorbed by a ball (H), be reflected back (R), or come out elsewhere after being "

@@ -14,11 +14,15 @@ ninja_begin "$build/build.ninja"
 sources=("$root/host/snapshot_main.cpp" "$root/host/art.cpp" "$root/host/platform_host.cpp" "$root/src/app/thumbnails.cpp"
     "$root/src/core/library.cpp" "$root/src/core/save_file.cpp" "$root/src/gfx/draw_list.cpp"
     "$root/src/gfx/font.cpp" "$root/src/gfx/gl_batch.cpp" "$root/src/gfx/gl_program.cpp"
-    "$root/src/games/registry.cpp" "$root/src/games/sgt/sgt_catalog.cpp"
+    "$root/src/games/registry.cpp" "$root/src/games/native.cpp" "$root/src/games/sgt/sgt_catalog.cpp"
     "$root/src/games/sgt/sgt_canvas.cpp" "$root/src/games/sgt/sgt_skin.cpp" "$root/src/games/sgt/sgt_scene.cpp"
     "$root/src/gfx/canvas.cpp" "$root/src/gfx/triangulate.cpp" "$root/src/ui/menu.cpp"
     "$root/src/games/g2048/g2048_scene.cpp" "$root/src/games/tenfold/tenfold_scene.cpp"
     "$root/src/ui/theme.cpp" "$root/src/ui/gallery.cpp" "$root/src/ui/confetti.cpp" "$root/src/ui/howto_card.cpp" "$root/src/ui/library_scene.cpp")
+# Native puzzles: the kit and every game directory built on it.
+for source in "$root"/src/games/kit/*.cpp "$root"/src/games/{crowns,linkup,trail,kakuro,nurikabe,trafficjam,colorsort,sokoban}/*.cpp; do
+    [[ -e $source ]] && sources+=("$source")
+done
 while IFS= read -r -d '' source; do
     sources+=("$source")
 done < <(find "$root/src/third_party/sgt-puzzles" -name '*.c' -print0 | sort -z)

@@ -189,6 +189,9 @@ void Shell::start_game(const std::string &id, bool fresh)
     case games::Kind::tenfold:
         game_ = std::make_unique<tenfold::TenfoldScene>(fonts_);
         break;
+    case games::Kind::native:
+        game_ = game->create(fonts_);
+        break;
     }
     std::string stats_data;
     std::string stats_payload;

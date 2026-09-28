@@ -5,6 +5,7 @@
 #pragma once
 
 #include "core/library.hpp"
+#include "games/native.hpp"
 #include "gfx/draw_list.hpp"
 
 #include <string>
@@ -24,6 +25,7 @@ enum class Kind
     sgt, // one of the 40 Tatham puzzles
     g2048,
     tenfold,
+    native, // built on the shared puzzle kit (games/kit)
 };
 
 struct GameInfo
@@ -37,9 +39,10 @@ struct GameInfo
     const sgt::GameEntry *sgt = nullptr;
     const char *rules = "";    // How to play paragraphs, '\n' separated
     const char *controls = ""; // game-specific controls
+    Factory create = nullptr;  // Kind::native
 };
 
-// All 42 games (40 Tatham puzzles, 2048 and Tenfold), in id order.
+// Every game (the Tatham puzzles, 2048, Tenfold and the native puzzles), in id order.
 const std::vector<GameInfo> &all();
 const GameInfo *find(std::string_view id);
 std::vector<LibraryEntry> library_entries();

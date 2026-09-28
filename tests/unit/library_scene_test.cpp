@@ -48,16 +48,20 @@ TEST(LibraryScene, DpadDownWalksEveryRowToTheEnd)
     Harness h;
     const std::string first = h.scene.focused_id();
     std::vector<std::string> seen = {first};
-    for (int i = 0; i < 10; ++i)
+    const int count = static_cast<int>(h.library.items().size());
+    const int rows = (count + 5) / 6; // six columns
+    for (int i = 0; i < rows + 2; ++i)
     {
         h.tap(ppz::pad_bits::kDown);
         seen.push_back(h.scene.focused_id());
     }
-    // 42 games in 6 columns: 7 rows, so six moves down then it stops.
-    EXPECT_NE(seen[1], seen[0]);
-    EXPECT_NE(seen[6], seen[5]);
-    EXPECT_EQ(seen[7], seen[6]);
-    EXPECT_EQ(h.library.index_of(seen[6]), 36);
+    // Every move down lands on a new row until the last row, then it stops.
+    const auto last = static_cast<std::size_t>(rows - 1);
+    for (std::size_t i = 1; i <= last; ++i)
+        EXPECT_NE(seen[i], seen[i - 1]) << "row " << i;
+    EXPECT_EQ(seen[last + 1], seen[last]);
+    // Column 0 of the last row, or the last game if that row is shorter.
+    EXPECT_EQ(h.library.index_of(seen[last]), std::min(count - 1, static_cast<int>(last) * 6));
 }
 
 TEST(LibraryScene, HeldDownRepeats)

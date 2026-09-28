@@ -23,6 +23,9 @@ constexpr float kHeading = 22.0f;
 // Shared by every Tatham puzzle; the game's own controls come first.
 constexpr const char *kSgtCommon = "D-pad moves the cursor. The left stick moves a free pointer "
                                    "for dragging. L1 undoes, R1 redoes, Options pauses.";
+// Shared by the native puzzles built on the kit.
+constexpr const char *kKitCommon = "L1 undoes, R1 redoes. Options pauses: new puzzle, restart "
+                                   "and board size.";
 
 struct Block
 {
@@ -74,6 +77,8 @@ void HowToCard::open(const games::GameInfo &game)
     controls_ = game.controls;
     if (game.kind == games::Kind::sgt)
         controls_ += std::string(controls_.empty() ? "" : "\n") + kSgtCommon;
+    else if (game.kind == games::Kind::native)
+        controls_ += std::string(controls_.empty() ? "" : "\n") + kKitCommon;
     accent_ = game.accent;
     open_ = true;
 }
