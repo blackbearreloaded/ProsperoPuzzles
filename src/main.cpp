@@ -7,6 +7,8 @@
 // hardware runs use as their oracle.
 
 #include "core/frame_stats.hpp"
+#include "games/sgt/sgt_catalog.hpp"
+#include "games/sgt/sgt_session.hpp"
 #include "gfx/gl_program.hpp"
 #include "platform/ps5/display_egl.hpp"
 #include "platform/ps5/system.hpp"
@@ -141,6 +143,8 @@ int main()
     std::int64_t previous = start;
     std::uint64_t frames = 0;
     FrameStats stats;
+    const auto games = sgt::catalog();
+    std::size_t next_game = 0;
     for (;;)
     {
         const std::int64_t now = sys::monotonic_us();
@@ -166,6 +170,24 @@ int main()
             stats.add(static_cast<double>(presented - previous) / 1000.0);
         }
         previous = presented;
+        // Tatham self-test: from frame 120, generate one puzzle per frame and
+        // log its timing, proving the collection runs on the console. The
+        // generation stalls these frames; they are excluded from pacing.
+        if (frames >= 120 && next_game < games.size())
+        {
+            const std::int64_t begin = sys::monotonic_us();
+            sgt::Session session(games[next_game]);
+            session.new_game();
+            int width = 0;
+            int height = 0;
+            session.resize(1600, 1000, &width, &height);
+            sys::log("[PPZ] sgt %s gen_ms=%.1f canvas=%dx%d status=%d", games[next_game].id,
+                     static_cast<double>(sys::monotonic_us() - begin) / 1000.0, width, height,
+                     session.status());
+            if (++next_game == games.size())
+                sys::log("[PPZ] sgt self-test done games=%zu", games.size());
+            previous = sys::monotonic_us();
+        }
         if (stats.count() == 600)
         {
             char summary[160];

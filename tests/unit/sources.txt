@@ -1,3 +1,6 @@
 # Platform-neutral application sources compiled into build/tests/unit_tests.
-# One repository-relative path per line; '#' starts a comment.
+# One repository-relative path (or glob) per line; '#' starts a comment.
 src/core/frame_stats.cpp
+src/games/sgt/sgt_catalog.cpp
+src/games/sgt/sgt_session.cpp
+src/third_party/sgt-puzzles/*.c

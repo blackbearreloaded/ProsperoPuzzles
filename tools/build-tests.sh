@@ -26,6 +26,12 @@ while IFS= read -r line; do
     line=${line%%#*}
     line=${line//[[:space:]]/}
     [[ -n $line ]] || continue
+    if [[ $line == *'*'* ]]; then
+        mapfile -t matches < <(cd "$root" && compgen -G "$line" | sort)
+        (( ${#matches[@]} )) || { echo "tests/unit/sources.txt: no match for $line" >&2; exit 2; }
+        for match in "${matches[@]}"; do sources+=("$root/$match"); done
+        continue
+    fi
     [[ -f $root/$line ]] || { echo "tests/unit/sources.txt: missing $line" >&2; exit 2; }
     sources+=("$root/$line")
 done < "$root/tests/unit/sources.txt"
@@ -44,8 +50,8 @@ for source in "${sources[@]}"; do
         # Vendored C (for example the Tatham puzzles) builds without -Werror.
         ninja_inputs=("$source" "$cc")
         ninja_edge CC "$object" "${compiler_cache[@]}" "$cc" -std=c11 -O2 -w \
-            "${sanitizers[@]}" -DCOMBINED -I"$root/src" -I"$root/src/third_party/sgt-puzzles" \
-            -MD -MF "$object.d" -c "$source" -o "$object"
+            "${sanitizers[@]}" -DCOMBINED -DNO_TGMATH_H -I"$root/src" \
+            -I"$root/src/third_party/sgt-puzzles" -MD -MF "$object.d" -c "$source" -o "$object"
     else
         ninja_edge CXX "$object" "${compiler_cache[@]}" "$cxx" "${flags[@]}" -pthread \
             "${sanitizers[@]}" -DCOMBINED -I"$root/src" -I"$root/tests" \

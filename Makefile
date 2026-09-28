@@ -17,8 +17,11 @@ PS5_OPENGL_PREFIX ?=
 
 # ProsperoPuzzles always builds against ps5-opengl; user APP_* values append.
 OPENGL_SDK := .deps/ps5-opengl/current
-override APP_DEFINITIONS := $(strip GL_GLEXT_PROTOTYPES=1 $(APP_DEFINITIONS))
-override APP_INCLUDE_PATHS := $(strip src $(OPENGL_SDK)/include $(APP_INCLUDE_PATHS))
+# COMBINED/NO_TGMATH_H configure the vendored Tatham puzzles (the PS5 SDK's
+# <tgmath.h> needs complex functions its libc does not declare).
+override APP_DEFINITIONS := $(strip GL_GLEXT_PROTOTYPES=1 COMBINED NO_TGMATH_H $(APP_DEFINITIONS))
+override APP_INCLUDE_PATHS := $(strip src src/third_party/sgt-puzzles $(OPENGL_SDK)/include \
+	$(APP_INCLUDE_PATHS))
 override APP_STATIC_ARCHIVES := $(strip .deps/ps5-opengl/libps5opengl-group.a $(APP_STATIC_ARCHIVES))
 override APP_IMPORT_STUBS := $(strip $(OPENGL_SDK)/lib/libSceAgc.so \
 	$(OPENGL_SDK)/lib/libSceAgcDriver.so $(APP_IMPORT_STUBS))
@@ -78,8 +81,9 @@ test-deps:
 test-unit:
 	@bash tools/build-tests.sh
 	@printf '%s\n' '==> [test-unit] Running host-native GoogleTest application tests'
-	@ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
-		$(HOST_UNIT_TEST) $(GTEST_ARGS)
+	@ASAN_OPTIONS=detect_leaks=1 LSAN_OPTIONS=suppressions=tests/unit/lsan.supp \
+		UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+		$(HOST_UNIT_TEST) --gtest_brief=1 $(GTEST_ARGS)
 
 test-integration:
 	@printf '%s\n' '==> [test-integration] Running host tooling integration tests'
