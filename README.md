@@ -212,7 +212,7 @@ ProsperoPuzzles never changes PS5 system settings or configures a loader. See
 | Options | Settings | Pause (How to play, new game, size, restart, solve) |
 
 Settings cover music, sound-effect and interface volume, swapping Cross and
-Circle, reduced motion and the frame-time overlay.
+Circle, reduced motion, an FPS counter and the display resolution.
 
 ## Audio
 

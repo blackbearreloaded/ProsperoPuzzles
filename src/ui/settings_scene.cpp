@@ -21,8 +21,9 @@ constexpr float kWidth = 1080.0f;
 const char *row_label(int row)
 {
     static const char *const labels[] = {
-        "Music volume",          "Sound effects volume", "Interface sounds", "Reduced motion",
-        "Swap Cross and Circle", "Show frame time",      "Resolution"};
+        "Music volume",   "Sound effects volume",  "Interface sounds",
+        "Reduced motion", "Swap Cross and Circle", "Show FPS",
+        "Resolution"};
     return labels[row];
 }
 
@@ -34,7 +35,7 @@ const char *row_help(int row)
         "Menu navigation and selection sounds.",
         "Replaces zooms, slides and bounces with quick fades.",
         "Circle confirms and Cross goes back.",
-        "Shows rendering time for troubleshooting.",
+        "Shows frames per second in the top-right corner.",
         "Rendering size. The PS5 scales the picture to your TV.",
     };
     return help[row];

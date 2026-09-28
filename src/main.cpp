@@ -170,6 +170,10 @@ int main()
     std::int64_t previous = sys::monotonic_us();
     std::uint64_t frames = 0;
     FrameStats stats;
+    // The FPS overlay averages over half a second so the number is readable.
+    double fps_seconds = 0.0;
+    int fps_frames = 0;
+    double fps_shown = 0.0;
     PadSample samples[64];
     gfx::DrawList list;
     std::int64_t last_frame_start = sys::monotonic_us();
@@ -220,18 +224,27 @@ int main()
             }
             viewport = gfx::fit_viewport(display.width(), display.height());
             shell.set_applied_resolution(resolution);
-            // The restart takes a moment; do not animate across it.
+            // The restart takes a moment; do not animate or count FPS across it.
             last_frame_start = sys::monotonic_us();
             previous = last_frame_start;
+            fps_seconds = 0.0;
+            fps_frames = 0;
         }
 
         list.clear();
         shell.draw(list);
-        if (shell.settings().show_fps)
+        fps_seconds += static_cast<double>(dt);
+        ++fps_frames;
+        if (fps_seconds >= 0.5)
         {
-            char fps[64];
-            std::snprintf(fps, sizeof(fps), "%.2f ms  %zu draws", static_cast<double>(dt) * 1000.0,
-                          batch.last_draw_calls());
+            fps_shown = fps_frames / fps_seconds;
+            fps_seconds = 0.0;
+            fps_frames = 0;
+        }
+        if (shell.settings().show_fps && fps_shown > 0.0)
+        {
+            char fps[32];
+            std::snprintf(fps, sizeof(fps), "%.0f FPS", fps_shown);
             list.text(regular, fonts.regular_texture, fps, 1900, 30, 20,
                       gfx::Color::rgb(0xffffff, 0.7f), gfx::Align::right);
         }
