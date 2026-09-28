@@ -223,6 +223,25 @@ int main(int argc, char **argv)
         ok = write((std::string("game-") + id).c_str()) && ok;
     }
 
+    // Every Tatham puzzle as it first appears (PPZ_SNAPSHOT_ALL=1; for skin review).
+    if (std::getenv("PPZ_SNAPSHOT_ALL") != nullptr)
+    {
+        for (const ppz::sgt::GameEntry &entry : ppz::sgt::catalog())
+        {
+            ppz::sgt::SgtScene game(entry, batch, fonts, 1.0f);
+            game.start({}, {});
+            ppz::InputFrame step;
+            step.nav = ppz::Direction::right;
+            game.update(step, 0.016f, cues);
+            for (int frame = 0; frame < 30; ++frame)
+                game.update(idle, 1.0f / 60.0f, cues);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            list.clear();
+            game.draw(list);
+            ok = write((std::string("all-") + entry.id).c_str()) && ok;
+        }
+    }
+
     {
         ppz::g2048::G2048Scene g2048(fonts);
         g2048.start({}, {});

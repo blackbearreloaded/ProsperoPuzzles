@@ -418,10 +418,8 @@ void LibraryScene::draw(gfx::DrawList &list, const Fonts &fonts) const
                   active ? theme::kInk : theme::kTextOnDarkMuted, Align::center);
         chip_x -= 12.0f;
     }
-    list.text(*fonts.semibold, fonts.semibold_texture, "L1", chip_x - 8, 143, 20,
-              theme::kTextOnDarkMuted, Align::right);
-    list.text(*fonts.semibold, fonts.semibold_texture, "R1", 1920.0f - theme::kSafeMargin + 12, 143,
-              20, theme::kTextOnDarkMuted);
+    draw_button(list, fonts, Button::l1, chip_x - 4 - button_width(Button::l1, 34), 135, 34);
+    draw_button(list, fonts, Button::r1, 1920.0f - theme::kSafeMargin + 12, 135, 34);
 
     // Grid (clipped and scrolled).
     list.push_clip({0, kViewTop, 1920, kViewBottom - kViewTop});
@@ -505,29 +503,16 @@ void LibraryScene::draw(gfx::DrawList &list, const Fonts &fonts) const
     }
 
     // Controls hint bar.
-    struct Hint
-    {
-        FaceButton button;
-        const char *label;
-    };
     const bool favorite = !cells_.empty() && library_.is_favorite(focused_id());
-    const Hint hints[] = {{FaceButton::cross, "Play"},
-                          {FaceButton::square, favorite ? "Unfavorite" : "Favorite"},
-                          {FaceButton::triangle, "Details"}};
-    float hx = 1920.0f - theme::kSafeMargin;
-    list.text(*fonts.regular, fonts.regular_texture, "Options  Settings", hx, 1019,
-              theme::kTextBody, theme::kTextOnDarkMuted, Align::right);
-    hx -= fonts.regular->measure("Options  Settings", theme::kTextBody) + 44.0f;
-    for (int i = 2; i >= 0; --i)
-    {
-        const float width = fonts.regular->measure(hints[i].label, theme::kTextBody);
-        list.text(*fonts.regular, fonts.regular_texture, hints[i].label, hx, 1019, theme::kTextBody,
-                  theme::kTextOnDark, Align::right);
-        draw_face_button(list, hints[i].button, hx - width - 28.0f, 1010, 40.0f);
-        hx -= width + 96.0f;
-    }
-    list.text(*fonts.regular, fonts.regular_texture, "L2 / R2  Jump letter", kLeft, 1019,
-              theme::kTextBody, theme::kTextOnDarkMuted);
+    const Hint settings[] = {{Button::options, "Settings"}};
+    const float settings_width = draw_hints(list, fonts, settings, 1, 1920.0f - theme::kSafeMargin,
+                                            true, theme::kTextOnDarkMuted);
+    const Hint hints[] = {{Button::cross, "Play"},
+                          {Button::square, favorite ? "Unfavorite" : "Favorite"},
+                          {Button::triangle, "Details"}};
+    draw_hints(list, fonts, hints, 3, 1920.0f - theme::kSafeMargin - settings_width - 44.0f, true);
+    const Hint jump[] = {{Button::l2, "Jump letter", Button::r2}};
+    draw_hints(list, fonts, jump, 1, kLeft, false, theme::kTextOnDarkMuted);
 }
 
 } // namespace ppz::ui

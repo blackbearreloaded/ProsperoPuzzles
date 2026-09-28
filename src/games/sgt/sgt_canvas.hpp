@@ -5,6 +5,7 @@
 #pragma once
 
 #include "games/sgt/sgt_session.hpp"
+#include "games/sgt/sgt_skin.hpp"
 #include "gfx/canvas.hpp"
 #include "gfx/draw_list.hpp"
 #include "gfx/gl_batch.hpp"
@@ -28,7 +29,14 @@ class CanvasRenderer final : public Renderer
 
     // Resizes the canvas and refreshes the palette; the session must force a
     // full redraw afterwards.
-    bool configure(int width, int height, const std::vector<float> &palette);
+    // game_id selects the skin (palette mapping and shape style).
+    bool configure(int width, int height, const std::vector<float> &palette,
+                   std::string_view game_id);
+    // The skinned background colour (for the card around the board).
+    gfx::Color background() const
+    {
+        return palette_.empty() ? gfx::Color{} : palette_[0];
+    }
     const gfx::Canvas &canvas() const
     {
         return canvas_;
@@ -73,6 +81,8 @@ class CanvasRenderer final : public Renderer
     gfx::Canvas canvas_;
     gfx::DrawList pending_;
     std::vector<gfx::Color> palette_;
+    Style style_;
+    float short_side_ = 1.0f;
     std::map<int, Blitter> blitters_;
     int next_blitter_ = 1;
     bool clipped_ = false;

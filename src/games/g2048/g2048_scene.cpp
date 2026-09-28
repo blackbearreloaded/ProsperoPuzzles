@@ -466,13 +466,14 @@ void G2048Scene::draw(gfx::DrawList &list) const
     }
     list.pop_transform();
 
-    ui::draw_face_button(list, ui::FaceButton::circle, ui::theme::kSafeMargin + 20, 1010, 40);
-    list.text(*fonts_.regular, fonts_.regular_texture,
-              "D-pad / stick  Slide      L1  Undo      Options  Menu",
-              1920.0f - ui::theme::kSafeMargin, 1019, ui::theme::kTextBody,
-              ui::theme::kTextOnDarkMuted, Align::right);
-    list.text(*fonts_.regular, fonts_.regular_texture, "Pause", ui::theme::kSafeMargin + 50, 1019,
-              ui::theme::kTextBody, ui::theme::kTextOnDark);
+    using ui::Button;
+    const ui::Hint primary[] = {{Button::circle, "Pause"}};
+    ui::draw_hints(list, fonts_, primary, 1, ui::theme::kSafeMargin, false);
+    const ui::Hint secondary[] = {{Button::dpad, "Slide", Button::left_stick},
+                                  {Button::l1, "Undo"},
+                                  {Button::options, "Menu"}};
+    ui::draw_hints(list, fonts_, secondary, 3, 1920.0f - ui::theme::kSafeMargin, true,
+                   ui::theme::kTextOnDarkMuted);
     menu_.draw(list, fonts_);
 }
 

@@ -69,7 +69,7 @@ void SgtScene::layout()
     int height = 0;
     session_->resize(static_cast<int>(kBoardArea.w * surface_scale_),
                      static_cast<int>(kBoardArea.h * surface_scale_), &width, &height);
-    renderer_->configure(width, height, session_->colours());
+    renderer_->configure(width, height, session_->colours(), entry_.id);
     const float w = static_cast<float>(width) / surface_scale_;
     const float h = static_cast<float>(height) / surface_scale_;
     board_ = {kBoardArea.x + (kBoardArea.w - w) * 0.5f, kBoardArea.y + (kBoardArea.h - h) * 0.5f, w,
@@ -329,7 +329,7 @@ void SgtScene::draw(gfx::DrawList &list) const
         shake = 6.0f * std::sin(shake_.progress() * 6.2831853f * 3.0f) * (1.0f - shake_.progress());
     const gfx::Rect card{board_.x - 22 + shake, board_.y - 22, board_.w + 44, board_.h + 44};
     list.shadow({card.x + 10, card.y + 22, card.w - 20, card.h}, 26, 34, ui::theme::kShadow);
-    list.rounded_rect(card, 26, Color::rgb(0xece9e1));
+    list.rounded_rect(card, 26, renderer_->background());
     list.image(renderer_->canvas().texture(), {board_.x + shake, board_.y, board_.w, board_.h},
                {0.0f, 1.0f, 1.0f, -1.0f}, Color{1, 1, 1, 1});
 
@@ -358,26 +358,16 @@ void SgtScene::draw(gfx::DrawList &list) const
     }
 
     // Controls hint bar.
-    struct Hint
-    {
-        ui::FaceButton button;
-        const char *label;
-    };
-    std::vector<Hint> hints = {{ui::FaceButton::cross, "Select"}, {ui::FaceButton::square, "Mark"}};
-    if (!keys_.empty())
-        hints.push_back({ui::FaceButton::triangle, "Keys"});
-    float hx = ui::theme::kSafeMargin;
-    for (const Hint &hint : hints)
-    {
-        ui::draw_face_button(list, hint.button, hx + 20, 1010, 40);
-        const float width = list.text(*fonts_.regular, fonts_.regular_texture, hint.label, hx + 50,
-                                      1019, ui::theme::kTextBody, ui::theme::kTextOnDark);
-        hx += width + 100.0f;
-    }
-    list.text(*fonts_.regular, fonts_.regular_texture,
-              "L1 Undo   R1 Redo   Left stick Pointer   Options Menu",
-              1920.0f - ui::theme::kSafeMargin, 1019, ui::theme::kTextBody,
-              ui::theme::kTextOnDarkMuted, Align::right);
+    using ui::Button;
+    const ui::Hint primary[] = {
+        {Button::cross, "Select"}, {Button::square, "Mark"}, {Button::triangle, "Keys"}};
+    ui::draw_hints(list, fonts_, primary, keys_.empty() ? 2 : 3, ui::theme::kSafeMargin, false);
+    const ui::Hint secondary[] = {{Button::l1, "Undo"},
+                                  {Button::r1, "Redo"},
+                                  {Button::left_stick, "Pointer"},
+                                  {Button::options, "Menu"}};
+    ui::draw_hints(list, fonts_, secondary, 4, 1920.0f - ui::theme::kSafeMargin, true,
+                   ui::theme::kTextOnDarkMuted);
 
     if (overlay_fade_.value > 0.01f)
     {

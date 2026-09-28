@@ -19,6 +19,7 @@ src/ui/confetti.cpp
 src/ui/howto_card.cpp
 src/ui/menu.cpp
 src/games/sgt/sgt_catalog.cpp
+src/games/sgt/sgt_skin.cpp
 src/ui/library_scene.cpp
 src/ui/theme.cpp
 src/games/sgt/sgt_session.cpp

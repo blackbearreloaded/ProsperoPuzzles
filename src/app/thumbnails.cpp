@@ -56,7 +56,7 @@ void Thumbnails::render(const std::string &id, const std::string &save)
     int height = 0;
     session.resize(static_cast<int>(ui::kThumbnailWidth * scale_),
                    static_cast<int>(ui::kThumbnailHeight * scale_), &width, &height);
-    preview.renderer->configure(width, height, session.colours());
+    preview.renderer->configure(width, height, session.colours(), entry->id);
     session.force_redraw();
     preview.width = static_cast<float>(width) / scale_;
     preview.height = static_cast<float>(height) / scale_;

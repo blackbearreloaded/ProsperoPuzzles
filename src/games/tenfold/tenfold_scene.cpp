@@ -476,16 +476,14 @@ void TenfoldScene::draw(gfx::DrawList &list) const
                        ui::theme::kFocus.with_alpha(pulse));
     list.pop_transform();
 
-    ui::draw_face_button(list, ui::FaceButton::cross, ui::theme::kSafeMargin + 20, 1010, 40);
-    list.text(*fonts_.regular, fonts_.regular_texture,
-              selected_ >= 0 ? "Merge here" : "Select group", ui::theme::kSafeMargin + 50, 1019,
-              ui::theme::kTextBody, ui::theme::kTextOnDark);
-    ui::draw_face_button(list, ui::FaceButton::square, ui::theme::kSafeMargin + 330, 1010, 40);
-    list.text(*fonts_.regular, fonts_.regular_texture, "Hint", ui::theme::kSafeMargin + 360, 1019,
-              ui::theme::kTextBody, ui::theme::kTextOnDark);
-    list.text(*fonts_.regular, fonts_.regular_texture,
-              "Circle  Deselect      L1  Undo      Options  Menu", 1920.0f - ui::theme::kSafeMargin,
-              1019, ui::theme::kTextBody, ui::theme::kTextOnDarkMuted, Align::right);
+    using ui::Button;
+    const ui::Hint primary[] = {{Button::cross, selected_ >= 0 ? "Merge here" : "Select group"},
+                                {Button::square, "Hint"}};
+    ui::draw_hints(list, fonts_, primary, 2, ui::theme::kSafeMargin, false);
+    const ui::Hint secondary[] = {
+        {Button::circle, "Deselect"}, {Button::l1, "Undo"}, {Button::options, "Menu"}};
+    ui::draw_hints(list, fonts_, secondary, 3, 1920.0f - ui::theme::kSafeMargin, true,
+                   ui::theme::kTextOnDarkMuted);
     menu_.draw(list, fonts_);
 }
 

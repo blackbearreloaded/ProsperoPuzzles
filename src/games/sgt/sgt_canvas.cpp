@@ -6,6 +6,8 @@
 
 #include "games/sgt/sgt_c.hpp"
 
+#include <algorithm>
+
 namespace ppz::sgt
 {
 
@@ -31,11 +33,12 @@ CanvasRenderer::~CanvasRenderer()
     }
 }
 
-bool CanvasRenderer::configure(int width, int height, const std::vector<float> &palette)
+bool CanvasRenderer::configure(int width, int height, const std::vector<float> &palette,
+                               std::string_view game_id)
 {
-    palette_.clear();
-    for (std::size_t i = 0; i + 2 < palette.size(); i += 3)
-        palette_.push_back(gfx::Color{palette[i], palette[i + 1], palette[i + 2], 1.0f});
+    palette_ = restyle_palette(game_id, palette);
+    style_ = style_for(game_id);
+    short_side_ = static_cast<float>(std::max(1, std::min(width, height)));
     pending_.clear();
     clipped_ = false;
     dirty_ = true;
@@ -80,9 +83,18 @@ void CanvasRenderer::end_draw()
 
 void CanvasRenderer::rect(int x, int y, int w, int h, int colour_index)
 {
-    pending_.rounded_rect({static_cast<float>(x), static_cast<float>(y), static_cast<float>(w),
-                           static_cast<float>(h)},
-                          0.0f, colour(colour_index));
+    const gfx::Rect r{static_cast<float>(x), static_cast<float>(y), static_cast<float>(w),
+                      static_cast<float>(h)};
+    const float shorter = static_cast<float>(std::min(w, h));
+    // Tile games: pieces become rounded cards; the background stays square
+    // so erasing a cell still covers it completely.
+    if (style_.round_min_fraction > 0.0f && colour_index != 0 &&
+        shorter >= style_.round_min_fraction * short_side_)
+    {
+        pending_.rounded_rect(r, shorter * style_.round_radius, colour(colour_index));
+        return;
+    }
+    pending_.rounded_rect(r, 0.0f, colour(colour_index));
 }
 
 void CanvasRenderer::line(float x1, float y1, float x2, float y2, float thickness, int colour_index)
@@ -117,7 +129,9 @@ void CanvasRenderer::circle(int cx, int cy, int radius, int fill, int outline)
     const float x = static_cast<float>(cx) + kPixelCentre;
     const float y = static_cast<float>(cy) + kPixelCentre;
     const float r = static_cast<float>(radius) + kPixelCentre;
-    if (fill >= 0)
+    if (fill >= 0 && style_.flat_discs && fill != outline && outline != 0)
+        pending_.circle(x, y, r, colour(fill));
+    else if (fill >= 0)
         pending_.bordered_rect({x - r, y - r, 2 * r, 2 * r}, r, colour(fill), 1.0f,
                                colour(outline));
     else

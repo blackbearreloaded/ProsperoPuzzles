@@ -64,4 +64,41 @@ enum class FaceButton : std::uint8_t
 // Draws the PlayStation face-button symbol centred at (cx, cy).
 void draw_face_button(gfx::DrawList &list, FaceButton button, float cx, float cy, float size);
 
+// Every controller input the hints show.
+enum class Button : std::uint8_t
+{
+    none,
+    cross,
+    circle,
+    square,
+    triangle,
+    l1,
+    r1,
+    l2,
+    r2,
+    options,
+    left_stick,
+    right_stick,
+    dpad,
+    touchpad,
+};
+
+// Width of a button glyph drawn at the given height.
+float button_width(Button button, float size);
+// Draws a controller glyph with its left edge at x, vertically centred on cy.
+void draw_button(gfx::DrawList &list, const Fonts &fonts, Button button, float x, float cy,
+                 float size);
+
+struct Hint
+{
+    Button button;
+    const char *label;
+    Button second = Button::none; // pairs such as L2 / R2
+};
+
+// Draws a row of [glyph label] hints on the 1080p hint line. With
+// right_align the row ends at x; otherwise it starts there. Returns its width.
+float draw_hints(gfx::DrawList &list, const Fonts &fonts, const Hint *hints, int count, float x,
+                 bool right_align, gfx::Color label_color = theme::kTextOnDark);
+
 } // namespace ppz::ui
