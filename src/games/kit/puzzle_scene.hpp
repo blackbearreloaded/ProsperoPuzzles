@@ -77,6 +77,8 @@ struct PuzzleStats
     std::uint32_t solved = 0;
     std::array<std::uint32_t, 3> best_seconds{}; // per size; 0 = none yet
 };
+// Reads a kit stats payload (as saved by PuzzleScene::stats()).
+bool decode_stats(std::string_view data, PuzzleStats *stats, int *last_size);
 
 // Base class for the native puzzles: header, stats panel, board card, cursor
 // ring, hint bar, pause and solved menus, sizes, undo/redo, timer and saves.
@@ -131,6 +133,10 @@ class PuzzleScene : public games::GameScene
     int cursor_row() const
     {
         return cursor_row_;
+    }
+    const char *size_label(int size) const
+    {
+        return info_.sizes[static_cast<std::size_t>(size < 0 ? 0 : size > 2 ? 2 : size)];
     }
     // Starts a puzzle from a fixed seed (tests, previews).
     void new_puzzle(std::uint64_t seed, int size);

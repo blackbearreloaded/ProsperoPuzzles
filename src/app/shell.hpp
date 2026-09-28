@@ -11,6 +11,7 @@
 #include "core/settings.hpp"
 #include "core/tween.hpp"
 #include "games/game_scene.hpp"
+#include "games/records.hpp"
 #include "gfx/draw_list.hpp"
 #include "gfx/gl_batch.hpp"
 #include "ui/confetti.hpp"
@@ -73,6 +74,8 @@ class Shell
     void toast(const std::string &text);
     void save_settings();
     void open_details(const std::string &id);
+    // The player's records for a game, read from its stats file.
+    games::Record record_for(const games::GameInfo &game) const;
     void start_game(const std::string &id, bool fresh);
 
     gfx::GlBatch &batch_;

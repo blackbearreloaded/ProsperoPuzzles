@@ -167,6 +167,8 @@ int main(int argc, char **argv)
     library.toggle_favorite("lightup");
     library.toggle_favorite("g2048");
     library.set_in_progress("mines", true);
+    library.set_completed("bridges", true);
+    library.set_completed("crowns", true);
     ppz::ui::LibraryScene scene(library);
     ppz::app::Thumbnails thumbnails(batch, fonts, 1.0f);
     for (const auto &game : ppz::games::all())
@@ -187,6 +189,21 @@ int main(int argc, char **argv)
     list.clear();
     scene.draw(list, fonts);
     ok = write("library") && ok;
+    {
+        // The details menu with a personal record line.
+        ppz::ui::Menu details;
+        details.open("Crowns",
+                     {{"Play", 1}, {"Add to favorites", 3}, {"How to play", 4}, {"Close", 0}},
+                     "Place one crown in every row, column and colour region, with no two "
+                     "touching.",
+                     "Best 7 \xC3\x97 7 1:35  \xC2\xB7  8 \xC3\x97 8 3:02  \xC2\xB7  Solved 6");
+        for (int frame = 0; frame < 40; ++frame)
+            details.update(idle, 1.0f / 60.0f, cues);
+        list.clear();
+        scene.draw(list, fonts);
+        details.draw(list, fonts);
+        ok = write("details-record") && ok;
+    }
 
     for (int step = 0; step < 4; ++step)
         scene.update(down, 0.016f, cues);

@@ -17,10 +17,12 @@ constexpr float kPanelWidth = 620.0f;
 
 } // namespace
 
-void Menu::open(std::string title, std::vector<Item> items, std::string subtitle)
+void Menu::open(std::string title, std::vector<Item> items, std::string subtitle,
+                std::string record)
 {
     title_ = std::move(title);
     subtitle_ = std::move(subtitle);
+    record_ = std::move(record);
     items_ = std::move(items);
     focus_ = 0;
     while (focus_ < static_cast<int>(items_.size()) &&
@@ -82,10 +84,11 @@ void Menu::draw(gfx::DrawList &list, const Fonts &fonts) const
         return;
     list.push_opacity(fade);
     list.rounded_rect({0, 0, 1920, 1080}, 0, gfx::Color::rgb(0x05070f, 0.6f));
-    const float header = subtitle_.empty() ? 96.0f : 132.0f;
+    const float header = (subtitle_.empty() ? 96.0f : 132.0f) + (record_.empty() ? 0.0f : 52.0f);
     const float height = header + kRowHeight * static_cast<float>(items_.size()) + 24.0f;
-    const float width =
-        std::clamp(fonts.regular->measure(subtitle_, 24) + 88.0f, kPanelWidth, 1600.0f);
+    const float width = std::clamp(std::max(fonts.regular->measure(subtitle_, 24) + 88.0f,
+                                            fonts.semibold->measure(record_, 22) + 128.0f),
+                                   kPanelWidth, 1600.0f);
     const gfx::Rect panel{960 - width * 0.5f, 540 - height * 0.5f + 24.0f * (1.0f - fade), width,
                           height};
     list.shadow({panel.x, panel.y + 18, panel.w, panel.h}, 30, 44, theme::kShadow);
@@ -95,6 +98,16 @@ void Menu::draw(gfx::DrawList &list, const Fonts &fonts) const
     if (!subtitle_.empty())
         list.text(*fonts.regular, fonts.regular_texture, subtitle_, panel.x + 44, panel.y + 106, 24,
                   theme::kInkMuted);
+    if (!record_.empty())
+    {
+        // A gold pill with a star: the player's record for this game.
+        const float y = panel.y + (subtitle_.empty() ? 86.0f : 124.0f);
+        const float w = fonts.semibold->measure(record_, 22) + 76.0f;
+        list.rounded_rect({panel.x + 40, y, w, 40}, 20, gfx::Color::rgb(0xf0c555, 0.28f));
+        list.star(panel.x + 62, y + 20, 11, gfx::Color::rgb(0xb0791a));
+        list.text(*fonts.semibold, fonts.semibold_texture, record_, panel.x + 82, y + 28, 22,
+                  gfx::Color::rgb(0x6b4a12));
+    }
     const float first = panel.y + header;
     list.rounded_rect(
         {panel.x + 20, first + highlight_.value * kRowHeight, panel.w - 40, kRowHeight - 8}, 18,

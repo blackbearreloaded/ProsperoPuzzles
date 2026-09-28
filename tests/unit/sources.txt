@@ -17,6 +17,7 @@ src/gfx/triangulate.cpp
 src/games/g2048/g2048_scene.cpp
 src/games/registry.cpp
 src/games/native.cpp
+src/games/records.cpp
 src/games/kit/*.cpp
 src/games/crowns/*.cpp
 src/games/nurikabe/*.cpp

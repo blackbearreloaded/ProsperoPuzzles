@@ -10,6 +10,7 @@
 #include "games/sgt/sgt_canvas.hpp"
 #include "games/sgt/sgt_session.hpp"
 #include "games/game_scene.hpp"
+#include "games/records.hpp"
 #include "gfx/draw_list.hpp"
 #include "ui/menu.hpp"
 #include "ui/theme.hpp"
@@ -39,6 +40,7 @@ class SgtScene final : public games::GameScene
     void draw(gfx::DrawList &list) const override;
 
     std::string save() override;
+    std::string stats() override;
     bool in_progress() override;
     const std::string &id() const override
     {
@@ -61,6 +63,9 @@ class SgtScene final : public games::GameScene
     void handle_pointer(const InputFrame &input, float dt, std::vector<audio::Cue> &cues);
     void run_pause_item(int item, std::vector<audio::Cue> &cues, SceneExit &exit);
     void draw_palette(gfx::DrawList &list) const;
+    // The current board size's name (a preset title, or "Custom").
+    std::string size_label() const;
+    void fresh_game();
 
     const GameEntry &entry_;
     ui::Fonts fonts_;
@@ -82,6 +87,11 @@ class SgtScene final : public games::GameScene
     tween::Timer shake_;
     tween::Spring overlay_fade_;
     bool assisted_ = false;
+    games::TimedStats stats_;
+    float seconds_ = 0.0f;  // time on this board
+    bool counted_ = false;  // played++ happens on the first move
+    bool new_best_ = false; // the last solve set a record
+    std::vector<Preset> presets_;
     int last_status_ = 0;
 };
 

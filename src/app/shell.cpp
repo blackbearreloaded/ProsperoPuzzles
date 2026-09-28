@@ -71,9 +71,19 @@ Shell::Shell(gfx::GlBatch &batch, const ui::Fonts &fonts, float surface_scale,
                 payload = decoded.payload;
         }
         thumbnails_.request(game.id, payload);
+        library_.set_completed(game.id, record_for(game).beaten);
     }
     sys::log("[PPZ] library games=%zu favorites_loaded resumable=%d", library_.entries().size(),
              resumable);
+}
+
+games::Record Shell::record_for(const games::GameInfo &game) const
+{
+    std::string data;
+    if (!save::read_file(stats_path(game.id), &data))
+        return {};
+    const auto decoded = save::decode(save::Kind::stats, data);
+    return decoded.ok ? games::describe(game, decoded.payload) : games::Record{};
 }
 
 std::string Shell::game_path(const std::string &id) const
@@ -107,6 +117,8 @@ void Shell::save_game()
             stats_path(id), save::encode(save::Kind::stats, kGameVersion, stats));
         if (!error.empty())
             sys::log("[PPZ] stats save failed %s: %s", id.c_str(), error.c_str());
+        if (const games::GameInfo *game = games::find(id))
+            library_.set_completed(id, games::describe(*game, stats).beaten);
     }
     const bool keep = game_->in_progress();
     thumbnails_.request(id, keep ? game_->save() : std::string());
@@ -148,7 +160,7 @@ void Shell::open_details(const std::string &id)
     items.push_back({library_.is_favorite(id) ? "Remove from favorites" : "Add to favorites", 3});
     items.push_back({"How to play", 4});
     items.push_back({"Close", 0});
-    details_.open(game->name, std::move(items), game->objective);
+    details_.open(game->name, std::move(items), game->objective, record_for(*game).line);
 }
 
 void Shell::toast(const std::string &text)

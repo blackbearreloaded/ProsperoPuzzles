@@ -4,6 +4,7 @@
 
 #include "games/sgt/sgt_scene.hpp"
 
+#include "core/bytes.hpp"
 #include "games/registry.hpp"
 
 #include <algorithm>
@@ -16,6 +17,10 @@ namespace
 {
 
 constexpr gfx::Rect kBoardArea{96.0f, 210.0f, 1728.0f, 730.0f};
+// Saves carry the board time ahead of the midend's own text.
+constexpr char kTimedSave[] = "PPZT";
+constexpr int kSizeBase = 100;        // pause-menu ids for board sizes
+constexpr std::size_t kMaxSizes = 10; // rows that fit on screen
 
 gfx::Color accent_of(const GameEntry &entry)
 {
@@ -55,12 +60,48 @@ SgtScene::SgtScene(const GameEntry &entry, gfx::GlBatch &batch, const ui::Fonts 
 
 void SgtScene::start(const std::string &save, const std::string &stats)
 {
-    (void)stats;
-    if (save.empty() || !session_->deserialise(save).empty())
+    games::decode_timed(stats, &stats_);
+    presets_ = session_->presets();
+    // A timed save is "PPZT" + u32 seconds + the midend text; older saves are bare.
+    std::string body = save;
+    std::uint32_t seconds = 0;
+    if (save.size() >= 8 && save.compare(0, 4, kTimedSave) == 0)
+    {
+        bytes::Reader r(std::string_view(save).substr(4, 4));
+        seconds = r.get<std::uint32_t>();
+        body = save.substr(8);
+    }
+    if (body.empty() || !session_->deserialise(body).empty())
+    {
         session_->new_game();
+        seconds = 0;
+    }
+    seconds_ = static_cast<float>(seconds);
+    counted_ = session_->can_undo();
+    new_best_ = false;
     layout();
     last_status_ = session_->status();
     assisted_ = false;
+}
+
+std::string SgtScene::size_label() const
+{
+    const int current = session_->current_preset();
+    for (const Preset &preset : presets_)
+        if (preset.id == current)
+            return preset.title;
+    return "Custom";
+}
+
+void SgtScene::fresh_game()
+{
+    session_->new_game();
+    layout();
+    assisted_ = false;
+    last_status_ = session_->status();
+    seconds_ = 0.0f;
+    counted_ = false;
+    new_best_ = false;
 }
 
 void SgtScene::layout()
@@ -159,17 +200,23 @@ void SgtScene::run_pause_item(int item, std::vector<audio::Cue> &cues, SceneExit
     switch (item)
     {
     case 1:
-        session_->new_game();
-        layout();
-        assisted_ = false;
-        last_status_ = session_->status();
+        fresh_game();
         cues.push_back(audio::Cue::new_game);
         break;
+    case 6:
+    {
+        std::vector<ui::Menu::Item> items;
+        for (std::size_t i = 0; i < presets_.size() && i < kMaxSizes; ++i)
+            items.push_back({presets_[i].title, kSizeBase + static_cast<int>(i)});
+        pause_.open("Board size", std::move(items), "Starts a new game");
+        break;
+    }
     case 5:
         exit = SceneExit::howto;
         break;
     case 2:
         session_->restart();
+        seconds_ = 0.0f;
         cues.push_back(audio::Cue::restart);
         break;
     case 3:
@@ -188,6 +235,12 @@ void SgtScene::run_pause_item(int item, std::vector<audio::Cue> &cues, SceneExit
         cues.push_back(audio::Cue::ui_back);
         break;
     default:
+        if (item >= kSizeBase && item < kSizeBase + static_cast<int>(presets_.size()))
+        {
+            session_->set_params(presets_[static_cast<std::size_t>(item - kSizeBase)].params);
+            fresh_game();
+            cues.push_back(audio::Cue::new_game);
+        }
         break;
     }
 }
@@ -237,6 +290,7 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
                          {"New game", 1},
                          {"Restart", 2},
                          {"Solve", 3, session_->can_solve()},
+                         {"Size: " + size_label(), 6, !presets_.empty()},
                          {"How to play", 5},
                          {"Back to library", 4}},
                         entry_.display_name);
@@ -276,13 +330,25 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
     session_->tick(dt);
     session_->redraw();
     const int status = session_->status();
+    // The clock runs while the board is live and the game is not paused.
+    if (status == 0 && !pause_.is_open() && !assisted_)
+        seconds_ += dt;
+    if (!counted_ && session_->can_undo())
+    {
+        counted_ = true;
+        ++stats_.played;
+    }
     if (status != last_status_)
     {
         if (status > 0)
         {
             cues.push_back(assisted_ ? audio::Cue::solve_reveal : audio::Cue::complete);
             if (!assisted_)
-                solved_banner_.start(3.0f);
+            {
+                ++stats_.solved;
+                new_best_ = stats_.record(size_label(), static_cast<std::uint32_t>(seconds_));
+                solved_banner_.start(new_best_ ? 3.6f : 3.0f);
+            }
         }
         else if (status < 0)
         {
@@ -297,7 +363,14 @@ SceneExit SgtScene::update(const InputFrame &input, float dt, std::vector<audio:
 
 std::string SgtScene::save()
 {
-    return session_->serialise();
+    bytes::Writer w;
+    w.put(static_cast<std::uint32_t>(seconds_));
+    return std::string(kTimedSave) + w.data() + session_->serialise();
+}
+
+std::string SgtScene::stats()
+{
+    return games::encode_timed(stats_);
 }
 
 bool SgtScene::in_progress()
@@ -319,6 +392,17 @@ void SgtScene::draw(gfx::DrawList &list) const
               ui::theme::kSafeMargin, 120, 56, ui::theme::kTextOnDark);
     list.text(*fonts_.regular, fonts_.regular_texture, entry_.objective, ui::theme::kSafeMargin,
               164, 24, ui::theme::kTextOnDarkMuted);
+    // Clock and personal best for this board size.
+    {
+        const std::string size = size_label();
+        const std::uint32_t best = stats_.best_for(size);
+        std::string line =
+            size + "  \xC2\xB7  Time " + games::clock_text(static_cast<std::uint32_t>(seconds_));
+        if (best > 0)
+            line += "  \xC2\xB7  Best " + games::clock_text(best);
+        list.text(*fonts_.semibold, fonts_.semibold_texture, line, ui::theme::kSafeMargin, 198, 22,
+                  ui::theme::kTextOnDarkMuted);
+    }
     if (!session_->status_text().empty())
         list.text(*fonts_.semibold, fonts_.semibold_texture, session_->status_text(),
                   1920.0f - ui::theme::kSafeMargin, 120, 28, ui::theme::kTextOnDark, Align::right);
@@ -353,6 +437,15 @@ void SgtScene::draw(gfx::DrawList &list) const
         list.rounded_rect({800, board_.y - 44, 320, 80}, 40, ui::theme::kFocus);
         list.text(*fonts_.semibold, fonts_.semibold_texture, "Solved!", 960, board_.y + 12, 44,
                   ui::theme::kInk, Align::center);
+        if (new_best_)
+        {
+            const std::string record =
+                "New best  " + games::clock_text(static_cast<std::uint32_t>(seconds_));
+            const float w = fonts_.semibold->measure(record, 28) + 56.0f;
+            list.rounded_rect({960 - w * 0.5f, board_.y + 44, w, 50}, 25, ui::theme::kInk);
+            list.text(*fonts_.semibold, fonts_.semibold_texture, record, 960, board_.y + 79, 28,
+                      ui::theme::kFocus, Align::center);
+        }
         list.pop_transform();
         list.pop_opacity();
     }

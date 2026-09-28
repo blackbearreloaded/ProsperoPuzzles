@@ -336,6 +336,18 @@ void LibraryScene::draw_card(gfx::DrawList &list, const Fonts &fonts, const Cell
         }
     }
 
+    // Beaten at least once: a gold medal with a check on the panel's corner.
+    if (library_.is_completed(entry.id))
+    {
+        const float mx = panel.x + panel.w - 6;
+        const float my = panel.y + 6;
+        list.circle(mx + 1, my + 3, 20, Color::rgb(0x000000, 0.22f));
+        list.circle(mx, my, 20, Color::rgb(0xfffefa));
+        list.circle(mx, my, 16, Color::rgb(0xf0c555));
+        list.line(mx - 7, my + 1, mx - 2, my + 6, 3.5f, Color::rgb(0x6b4a12));
+        list.line(mx - 2, my + 6, mx + 8, my - 5, 3.5f, Color::rgb(0x6b4a12));
+    }
+
     const float text_w = kCardW - 36.0f;
     list.text(*fonts.semibold, fonts.semibold_texture,
               fit(*fonts.semibold, entry.display_name, 30, text_w - 34), x + 18, y + 214, 30,

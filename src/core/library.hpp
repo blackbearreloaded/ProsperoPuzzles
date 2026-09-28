@@ -61,6 +61,9 @@ class Library
     bool toggle_favorite(std::string_view id);
     void set_in_progress(std::string_view id, bool in_progress);
     bool is_in_progress(std::string_view id) const;
+    // Solved at least once (shown as a badge on the card).
+    void set_completed(std::string_view id, bool completed);
+    bool is_completed(std::string_view id) const;
 
     // Visible items for the current filter, in display order.
     const std::vector<LibraryItem> &items() const
@@ -91,6 +94,7 @@ class Library
     std::vector<std::size_t> sorted_; // entries_ indices, A-Z
     std::vector<bool> favorite_;
     std::vector<bool> in_progress_;
+    std::vector<bool> completed_;
     LibraryFilter filter_ = LibraryFilter::all;
     std::vector<LibraryItem> items_;
 };

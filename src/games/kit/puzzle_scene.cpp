@@ -76,6 +76,24 @@ std::uint64_t fresh_seed()
            static_cast<std::uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count());
 }
 
+bool decode_stats(std::string_view data, PuzzleStats *stats, int *last_size)
+{
+    bytes::Reader s(data);
+    if (s.get<std::uint8_t>() != kSaveVersion)
+        return false;
+    PuzzleStats loaded;
+    loaded.played = s.get<std::uint32_t>();
+    loaded.solved = s.get<std::uint32_t>();
+    for (auto &best : loaded.best_seconds)
+        best = s.get<std::uint32_t>();
+    const int size = s.get<std::uint8_t>();
+    if (!s.finished())
+        return false;
+    *stats = loaded;
+    *last_size = std::clamp(size, 0, 2);
+    return true;
+}
+
 PuzzleScene::PuzzleScene(const ui::Fonts &fonts, Info info)
     : size_(info.default_size), info_(std::move(info)), fonts_(fonts)
 {
@@ -119,21 +137,9 @@ void PuzzleScene::new_puzzle(std::uint64_t seed, int size)
 
 void PuzzleScene::start(const std::string &save, const std::string &stats)
 {
-    bytes::Reader s(stats);
-    if (s.get<std::uint8_t>() == kSaveVersion)
-    {
-        PuzzleStats loaded;
-        loaded.played = s.get<std::uint32_t>();
-        loaded.solved = s.get<std::uint32_t>();
-        for (auto &best : loaded.best_seconds)
-            best = s.get<std::uint32_t>();
-        const int last_size = s.get<std::uint8_t>();
-        if (s.finished())
-        {
-            stats_ = loaded;
-            size_ = std::clamp(last_size, 0, 2);
-        }
-    }
+    int last_size = 0;
+    if (decode_stats(stats, &stats_, &last_size))
+        size_ = last_size;
 
     bytes::Reader r(save);
     bool restored = false;

@@ -28,7 +28,9 @@ class Menu
     static constexpr int kCancelled = -2;
     static constexpr int kNone = -1;
 
-    void open(std::string title, std::vector<Item> items, std::string subtitle = {});
+    // record is an optional highlighted line under the subtitle (personal bests).
+    void open(std::string title, std::vector<Item> items, std::string subtitle = {},
+              std::string record = {});
     void close();
     bool is_open() const
     {
@@ -44,6 +46,7 @@ class Menu
   private:
     std::string title_;
     std::string subtitle_;
+    std::string record_;
     std::vector<Item> items_;
     int focus_ = 0;
     bool open_ = false;

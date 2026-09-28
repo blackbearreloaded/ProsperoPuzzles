@@ -97,7 +97,10 @@ void Thumbnails::render(const std::string &id, const std::string &save)
     // the canvas keeps the finished drawing.
     sgt::Session session(*entry);
     session.set_renderer(preview.renderer.get());
-    if (save.empty() || !session.deserialise(save).empty())
+    // Timed saves carry "PPZT" + a u32 clock ahead of the midend text.
+    const std::string body =
+        save.size() >= 8 && save.compare(0, 4, "PPZT") == 0 ? save.substr(8) : save;
+    if (body.empty() || !session.deserialise(body).empty())
         session.load_game_id(session.encoded_params() + "#prospero-preview");
     int width = 0;
     int height = 0;

@@ -64,7 +64,7 @@ char Library::initial(std::string_view name)
 
 Library::Library(std::vector<LibraryEntry> entries)
     : entries_(std::move(entries)), favorite_(entries_.size(), false),
-      in_progress_(entries_.size(), false)
+      in_progress_(entries_.size(), false), completed_(entries_.size(), false)
 {
     sorted_.resize(entries_.size());
     std::iota(sorted_.begin(), sorted_.end(), 0);
@@ -126,6 +126,19 @@ void Library::set_in_progress(std::string_view id, bool in_progress)
     in_progress_[index] = in_progress;
     if (filter_ == LibraryFilter::in_progress)
         rebuild();
+}
+
+void Library::set_completed(std::string_view id, bool completed)
+{
+    const std::size_t index = find_entry(entries_, id);
+    if (index < entries_.size())
+        completed_[index] = completed;
+}
+
+bool Library::is_completed(std::string_view id) const
+{
+    const std::size_t index = find_entry(entries_, id);
+    return index < entries_.size() && completed_[index];
 }
 
 bool Library::is_in_progress(std::string_view id) const
