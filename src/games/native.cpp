@@ -5,6 +5,7 @@
 #include "games/native.hpp"
 
 #include "games/crowns/crowns_scene.hpp"
+#include "games/kakuro/kakuro_scene.hpp"
 #include "games/trail/trail_scene.hpp"
 #include "games/linkup/linkup_scene.hpp"
 #include "games/sokoban/sokoban_scene.hpp"
@@ -33,6 +34,10 @@ constexpr NativeGame kNative[] = {
     {"trail", "Trail", "One-line path puzzle",
      "Draw one path through every cell, passing the numbers in order from 1 to the last.",
      &make<trail::TrailScene>},
+    {"kakuro", "Kakuro", "Cross-sum number puzzle",
+     "Fill the white cells with 1 to 9 so every run adds up to its clue, with no digit repeated in "
+     "a run.",
+     &make<kakuro::KakuroScene>},
 };
 
 } // namespace
