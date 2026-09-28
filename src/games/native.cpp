@@ -5,6 +5,7 @@
 #include "games/native.hpp"
 
 #include "games/crowns/crowns_scene.hpp"
+#include "games/trafficjam/trafficjam_scene.hpp"
 #include "games/colorsort/colorsort_scene.hpp"
 #include "games/kakuro/kakuro_scene.hpp"
 #include "games/trail/trail_scene.hpp"
@@ -42,6 +43,9 @@ constexpr NativeGame kNative[] = {
     {"colorsort", "Color Sort", "Ball sorting puzzle",
      "Pour the coloured balls between tubes until every tube holds a single colour.",
      &make<colorsort::ColorSortScene>},
+    {"trafficjam", "Traffic Jam", "Sliding block escape",
+     "Slide the cars and trucks along their lanes to clear a path for the red car.",
+     &make<trafficjam::TrafficJamScene>},
 };
 
 } // namespace

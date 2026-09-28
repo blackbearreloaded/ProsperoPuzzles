@@ -19,6 +19,7 @@ src/games/registry.cpp
 src/games/native.cpp
 src/games/kit/*.cpp
 src/games/crowns/*.cpp
+src/games/trafficjam/*.cpp
 src/games/colorsort/*.cpp
 src/games/kakuro/*.cpp
 src/games/trail/*.cpp
