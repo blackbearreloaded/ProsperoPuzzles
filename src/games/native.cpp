@@ -5,6 +5,7 @@
 #include "games/native.hpp"
 
 #include "games/crowns/crowns_scene.hpp"
+#include "games/colorsort/colorsort_scene.hpp"
 #include "games/kakuro/kakuro_scene.hpp"
 #include "games/trail/trail_scene.hpp"
 #include "games/linkup/linkup_scene.hpp"
@@ -38,6 +39,9 @@ constexpr NativeGame kNative[] = {
      "Fill the white cells with 1 to 9 so every run adds up to its clue, with no digit repeated in "
      "a run.",
      &make<kakuro::KakuroScene>},
+    {"colorsort", "Color Sort", "Ball sorting puzzle",
+     "Pour the coloured balls between tubes until every tube holds a single colour.",
+     &make<colorsort::ColorSortScene>},
 };
 
 } // namespace
