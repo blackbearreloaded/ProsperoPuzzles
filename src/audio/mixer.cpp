@@ -84,6 +84,29 @@ bool Mixer::set_master_gain(float gain)
     return post(command);
 }
 
+bool Mixer::set_stream_gain(std::size_t slot, float gain, float seconds)
+{
+    if (slot >= kStreams)
+        return false;
+    Command command;
+    command.type = CommandType::stream_gain;
+    command.slot = slot;
+    command.value = gain;
+    command.seconds = seconds;
+    return post(command);
+}
+
+bool Mixer::swap_stream(std::size_t slot, StreamRing *ring)
+{
+    if (slot >= kStreams)
+        return false;
+    Command command;
+    command.type = CommandType::stream_swap;
+    command.slot = slot;
+    command.ring = ring;
+    return post(command);
+}
+
 bool Mixer::stop_all()
 {
     Command command;
@@ -133,6 +156,18 @@ void Mixer::apply(const Command &command)
         for (Voice &voice : voices_)
             voice.active = false;
         break;
+    case CommandType::stream_swap:
+        streams_[command.slot] = command.ring;
+        break;
+    case CommandType::stream_gain:
+    {
+        const float target = std::clamp(command.value, 0.0f, 1.0f);
+        stream_target_[command.slot] = target;
+        const float distance = std::fabs(target - stream_gain_[command.slot]);
+        stream_step_[command.slot] =
+            command.seconds > 0.0f ? distance / (command.seconds * kSampleRate) : distance;
+        break;
+    }
     }
 }
 
@@ -196,6 +231,39 @@ void Mixer::render(std::int16_t *out, int frames)
     }
     tail_.store(tail, std::memory_order_release);
 
+    // Long requests (host tests) are mixed in stream-buffer-sized chunks.
+    while (frames > static_cast<int>(kMaxGrain))
+    {
+        render_chunk(out, static_cast<int>(kMaxGrain));
+        out += kMaxGrain * 2;
+        frames -= static_cast<int>(kMaxGrain);
+    }
+    render_chunk(out, frames);
+
+    int active = 0;
+    for (const Voice &voice : voices_)
+        active += voice.active ? 1 : 0;
+    active_.store(active, std::memory_order_relaxed);
+}
+
+void Mixer::render_chunk(std::int16_t *out, int frames)
+{
+    // Pull this grain from each music stream; a short read plays silence.
+    for (std::size_t s = 0; s < kStreams; ++s)
+    {
+        auto &buffer = stream_buffer_[s];
+        std::size_t got = 0;
+        if (streams_[s] != nullptr)
+            got = streams_[s]->read(buffer.data(), static_cast<std::size_t>(frames));
+        if (got < static_cast<std::size_t>(frames))
+        {
+            std::fill(buffer.begin() + static_cast<std::ptrdiff_t>(got * 2),
+                      buffer.begin() + frames * 2, 0.0f);
+            if (streams_[s] != nullptr && stream_gain_[s] > 0.0f)
+                underruns_.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+
     for (int frame = 0; frame < frames; ++frame)
     {
         for (std::size_t bus = 0; bus < bus_gain_.size(); ++bus)
@@ -237,16 +305,24 @@ void Mixer::render(std::int16_t *out, int frames)
             left += l * gain * voice.left;
             right += r * gain * voice.right;
         }
+        const float music = bus_gain_[static_cast<std::size_t>(Bus::music)];
+        for (std::size_t s = 0; s < kStreams; ++s)
+        {
+            float &gain = stream_gain_[s];
+            const float target = stream_target_[s];
+            if (gain != target)
+                gain = gain < target ? std::min(target, gain + stream_step_[s])
+                                     : std::max(target, gain - stream_step_[s]);
+            if (gain <= 0.0f)
+                continue;
+            left += stream_buffer_[s][static_cast<std::size_t>(frame) * 2] * gain * music;
+            right += stream_buffer_[s][static_cast<std::size_t>(frame) * 2 + 1] * gain * music;
+        }
         left = limit(left * master_gain_);
         right = limit(right * master_gain_);
         out[frame * 2] = static_cast<std::int16_t>(std::lrint(left * 32767.0f));
         out[frame * 2 + 1] = static_cast<std::int16_t>(std::lrint(right * 32767.0f));
     }
-
-    int active = 0;
-    for (const Voice &voice : voices_)
-        active += voice.active ? 1 : 0;
-    active_.store(active, std::memory_order_relaxed);
 }
 
 } // namespace ppz::audio

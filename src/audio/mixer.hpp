@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "audio/stream_ring.hpp"
+
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -62,6 +64,8 @@ class Mixer
   public:
     static constexpr std::size_t kVoices = 32;
     static constexpr std::size_t kQueue = 256;
+    static constexpr std::size_t kStreams = 2;     // music decks, for crossfades
+    static constexpr std::size_t kMaxGrain = 1024; // frames per render call
 
     Mixer();
 
@@ -71,6 +75,17 @@ class Mixer
     bool set_bus_gain(Bus bus, float gain);
     bool set_master_gain(float gain);
     bool stop_all();
+    // Attach before the audio thread starts; streams play on the music bus.
+    void attach_stream(std::size_t slot, StreamRing *ring)
+    {
+        if (slot < kStreams)
+            streams_[slot] = ring;
+    }
+    // Switches a slot to another ring on the audio thread; the caller keeps
+    // the old ring alive for a few grains.
+    bool swap_stream(std::size_t slot, StreamRing *ring);
+    // Ramps a stream's gain to gain over seconds (0 = at once).
+    bool set_stream_gain(std::size_t slot, float gain, float seconds);
 
     // ---- audio thread ----
     // Renders frames of interleaved stereo S16 at kSampleRate.
@@ -78,6 +93,11 @@ class Mixer
     int active_voices() const
     {
         return active_.load(std::memory_order_relaxed);
+    }
+    // Grains where an audible stream ran dry (the decoder fell behind).
+    std::uint64_t stream_underruns() const
+    {
+        return underruns_.load(std::memory_order_relaxed);
     }
     std::uint64_t dropped_commands() const
     {
@@ -98,6 +118,8 @@ class Mixer
         bus_gain,
         master_gain,
         stop_all,
+        stream_gain,
+        stream_swap,
     };
     struct Command
     {
@@ -106,6 +128,9 @@ class Mixer
         Tone tone{};
         PlayParams params{};
         float value = 0.0f;
+        float seconds = 0.0f;
+        std::size_t slot = 0;
+        StreamRing *ring = nullptr;
     };
     struct Voice
     {
@@ -122,6 +147,7 @@ class Mixer
     };
 
     bool post(const Command &command);
+    void render_chunk(std::int16_t *out, int frames);
     void apply(const Command &command);
     Voice &allocate_voice();
     static float tone_sample(Voice &voice);
@@ -137,6 +163,12 @@ class Mixer
     std::uint32_t voice_clock_ = 0;
     std::atomic<int> active_{0};
     std::atomic<std::uint64_t> dropped_{0};
+    std::array<StreamRing *, kStreams> streams_{};
+    std::array<float, kStreams> stream_gain_{};
+    std::array<float, kStreams> stream_target_{};
+    std::array<float, kStreams> stream_step_{};
+    std::array<std::array<float, kMaxGrain * 2>, kStreams> stream_buffer_{};
+    std::atomic<std::uint64_t> underruns_{0};
 };
 
 } // namespace ppz::audio

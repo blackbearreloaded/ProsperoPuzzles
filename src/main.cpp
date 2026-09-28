@@ -9,6 +9,7 @@
 #include "app/shell.hpp"
 #include "audio/cues.hpp"
 #include "audio/mixer.hpp"
+#include "audio/music.hpp"
 #include "core/frame_stats.hpp"
 #include "core/input.hpp"
 #include "core/save_file.hpp"
@@ -92,6 +93,10 @@ int main()
     pad.open();
     InputTracker tracker;
     audio::Mixer mixer;
+    // Music decks attach to the mixer before the audio thread starts.
+    audio::MusicPlayer music;
+    const int tracks = music.init(mixer, std::string(kAssets) + "/audio/music");
+    sys::log("[PPZ] music tracks=%d", tracks);
     ps5::AudioOut audio_out;
     audio_out.start(mixer);
     audio::SoundBank sounds;
@@ -139,7 +144,13 @@ int main()
         }
         const std::string game = shell.active_game();
         for (audio::Cue cue : shell.take_cues())
+        {
             sounds.play(mixer, cue, game);
+            if (cue == audio::Cue::complete)
+                music.duck();
+        }
+        music.set_context(game);
+        music.pump(dt > 0.05f ? 0.05f : dt);
 
         list.clear();
         shell.draw(list);
@@ -182,9 +193,11 @@ int main()
             char summary[160];
             stats.format(summary, sizeof(summary));
             sys::log("[PPZ] %s draws=%zu", summary, batch.last_draw_calls());
-            sys::log("[PPZ] audio grains=%llu errors=%llu voices=%d",
+            sys::log("[PPZ] audio grains=%llu errors=%llu voices=%d music=%s underruns=%llu",
                      static_cast<unsigned long long>(audio_out.grains()),
-                     static_cast<unsigned long long>(audio_out.errors()), mixer.active_voices());
+                     static_cast<unsigned long long>(audio_out.errors()), mixer.active_voices(),
+                     music.current().c_str(),
+                     static_cast<unsigned long long>(mixer.stream_underruns()));
             stats.reset();
             if (frames % 3600 < 600)
                 log_heap(frames);

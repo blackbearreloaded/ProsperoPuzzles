@@ -30,6 +30,13 @@ The baker uses [stb_truetype](https://github.com/nothings/stb)
 (`third_party/stb/stb_truetype.h`, public domain or MIT). It is a host-only
 tool and is not linked into the PS5 application.
 
+## Music decoding
+
+Music is decoded by [stb_vorbis](https://github.com/nothings/stb) (public
+domain or MIT; see `src/third_party/stb/LICENSE`), vendored at the commit in
+`src/third_party/stb/UPSTREAM` by `tools/update-stb.sh`. It is linked into the
+PS5 application.
+
 ## OpenGL runtime
 
 The PS5 build statically links the
