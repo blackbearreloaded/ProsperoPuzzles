@@ -18,7 +18,7 @@ struct Settings
     int ui_volume = 7;    // 0..10
     bool reduced_motion = false;
     bool swap_confirm = false; // Circle confirms, Cross goes back
-    bool show_fps = false;
+    bool show_fps = true;
     // Display resolution, an index into kResolutions (1080p, 1440p, 4K).
     int resolution = 0;
 
