@@ -21,6 +21,9 @@ struct Style
     float round_radius = 0.18f; // of the rectangle's short side
     // Filled circles lose their 1px outline (flat, modern discs).
     bool flat_discs = false;
+    // Tatham's bevelled tiles (two half-square triangles plus an inset face)
+    // become flat rounded cards with a soft drop shadow.
+    bool bevel_cards = false;
     // Strokes at least this thick keep their width; thinner lines are drawn
     // at this width instead (0 = unchanged). Canvas pixels per 1000 of board.
     float min_line = 0.0f;

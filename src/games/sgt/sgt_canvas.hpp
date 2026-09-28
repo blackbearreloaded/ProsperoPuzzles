@@ -74,6 +74,8 @@ class CanvasRenderer final : public Renderer
     };
 
     gfx::Color colour(int index) const;
+    // Bevel-to-card conversion; true when the polygon was consumed.
+    bool bevel_card(const int *coords, int npoints, int fill, int outline);
     void flush();
 
     gfx::GlBatch &batch_;
@@ -82,6 +84,8 @@ class CanvasRenderer final : public Renderer
     gfx::DrawList pending_;
     std::vector<gfx::Color> palette_;
     Style style_;
+    bool card_face_pending_ = false; // the next inset rect is the bevel's face
+    gfx::Rect card_box_{};
     float short_side_ = 1.0f;
     std::map<int, Blitter> blitters_;
     int next_blitter_ = 1;

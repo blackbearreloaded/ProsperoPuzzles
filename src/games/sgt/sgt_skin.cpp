@@ -128,6 +128,21 @@ constexpr Override kOverrides[] = {
     {"palisade", 3, 0xd3cec3}, // COL_LINE_MAYBE
     // Mosaic: undecided squares are teal upstream; make them quiet tiles.
     {"mosaic", 1, 0xdad6cd}, // COL_UNMARKED
+    // Pattern: quiet undecided cells, white blanks, slate filled cells.
+    {"pattern", 1, 0xfffefa}, // COL_EMPTY
+    {"pattern", 2, 0x3b4668}, // COL_FULL
+    {"pattern", 4, 0xd8d3c8}, // COL_UNKNOWN
+    // Unruly: white and slate pieces on quiet undecided cells.
+    {"unruly", 1, 0xb9b3a7}, // COL_GRID
+    {"unruly", 2, 0xd8d3c8}, // COL_EMPTY
+    {"unruly", 3, 0xfffefa}, // COL_0
+    {"unruly", 4, 0xffffff}, // COL_0_HIGHLIGHT
+    {"unruly", 5, 0xe0dbd1}, // COL_0_LOWLIGHT
+    {"unruly", 6, 0x4b5b86}, // COL_1
+    {"unruly", 7, 0x6273a0}, // COL_1_HIGHLIGHT
+    {"unruly", 8, 0x36436a}, // COL_1_LOWLIGHT
+    // Black Box: the covered interior is a quiet tile, not a grey slab.
+    {"blackbox", 1, 0xd8d3c8}, // COL_COVER
 };
 
 } // namespace
@@ -169,6 +184,12 @@ Style style_for(std::string_view game_id)
     {
         if (game_id == id)
             style.round_min_fraction = 0.06f;
+    }
+    constexpr std::string_view kCards[] = {"fifteen", "sixteen"};
+    for (std::string_view id : kCards)
+    {
+        if (game_id == id)
+            style.bevel_cards = true;
     }
     constexpr std::string_view kDiscs[] = {"pegs",     "guess",   "bridges",  "pearl",
                                            "untangle", "inertia", "galaxies", "slant"};

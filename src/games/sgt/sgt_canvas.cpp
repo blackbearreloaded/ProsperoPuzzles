@@ -81,8 +81,78 @@ void CanvasRenderer::end_draw()
         canvas_.resolve();
 }
 
+bool CanvasRenderer::bevel_card(const int *coords, int npoints, int fill, int outline)
+{
+    if (!style_.bevel_cards || npoints != 3 || fill < 0 || fill != outline)
+        return false;
+    int x0 = coords[0], x1 = coords[0], y0 = coords[1], y1 = coords[1];
+    for (int i = 1; i < 3; ++i)
+    {
+        x0 = std::min(x0, coords[2 * i]);
+        x1 = std::max(x1, coords[2 * i]);
+        y0 = std::min(y0, coords[2 * i + 1]);
+        y1 = std::max(y1, coords[2 * i + 1]);
+    }
+    const int size = x1 - x0 + 1;
+    if (size != y1 - y0 + 1 || static_cast<float>(size) < 0.06f * short_side_)
+        return false;
+    // Which corner holds the right angle: top-left is the light half, bottom-right the dark.
+    bool top_left = false, bottom_right = false;
+    for (int i = 0; i < 3; ++i)
+    {
+        const int px = coords[2 * i], py = coords[2 * i + 1];
+        const int prev = (i + 2) % 3, next = (i + 1) % 3;
+        const bool axis = (coords[2 * prev] == px && coords[2 * next + 1] == py) ||
+                          (coords[2 * next] == px && coords[2 * prev + 1] == py);
+        if (!axis)
+            continue;
+        top_left = top_left || (px == x0 && py == y0);
+        bottom_right = bottom_right || (px == x1 && py == y1);
+    }
+    if (top_left == bottom_right)
+        return false;
+    const float s = static_cast<float>(size);
+    const gfx::Rect box{static_cast<float>(x0), static_cast<float>(y0), s, s};
+    const float inset = s * 0.045f;
+    const gfx::Rect face{box.x + inset, box.y + inset, s - 2 * inset, s - 2 * inset};
+    if (bottom_right)
+    {
+        // Drawn first: clear the square, then lay the card's shadow.
+        pending_.rounded_rect(box, 0.0f, colour(0));
+        // Clipped to the square: an empty neighbour never shows a stray shadow.
+        pending_.push_clip(box);
+        pending_.shadow({face.x, face.y + s * 0.04f, face.w, face.h}, s * 0.16f, s * 0.05f,
+                        gfx::Color::rgb(0x28334f, 0.28f));
+        pending_.pop_clip();
+        return true;
+    }
+    pending_.rounded_rect(face, s * 0.16f, gfx::Color::rgb(0xfffefa));
+    card_box_ = box;
+    card_face_pending_ = true;
+    return true;
+}
+
 void CanvasRenderer::rect(int x, int y, int w, int h, int colour_index)
 {
+    if (card_face_pending_)
+    {
+        card_face_pending_ = false;
+        const bool inside = x >= card_box_.x && y >= card_box_.y &&
+                            x + w <= card_box_.x + card_box_.w &&
+                            y + h <= card_box_.y + card_box_.h;
+        if (inside)
+        {
+            // The bevel's face: the card already covers it. Flashes tint the card.
+            if (colour_index != 0)
+            {
+                const float inset = card_box_.w * 0.045f;
+                pending_.rounded_rect({card_box_.x + inset, card_box_.y + inset,
+                                       card_box_.w - 2 * inset, card_box_.h - 2 * inset},
+                                      card_box_.w * 0.16f, colour(colour_index));
+            }
+            return;
+        }
+    }
     const gfx::Rect r{static_cast<float>(x), static_cast<float>(y), static_cast<float>(w),
                       static_cast<float>(h)};
     const float shorter = static_cast<float>(std::min(w, h));
@@ -107,6 +177,9 @@ void CanvasRenderer::polygon(const int *coords, int npoints, int fill, int outli
 {
     if (npoints < 2)
         return;
+    if (bevel_card(coords, npoints, fill, outline))
+        return;
+    card_face_pending_ = false;
     scratch_.clear();
     for (int i = 0; i < npoints; ++i)
     {
