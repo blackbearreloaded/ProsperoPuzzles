@@ -64,14 +64,22 @@ struct Instance
 };
 static_assert(sizeof(Instance) == 96);
 
-// Consecutive instances sharing a texture and clip rectangle.
+// One vertex of a filled polygon mesh.
+struct MeshVertex
+{
+    float x, y;
+    float r, g, b, a;
+};
+
+// Consecutive instances (or mesh vertices) sharing a texture and clip rectangle.
 struct Run
 {
     std::uint32_t first = 0;
     std::uint32_t count = 0;
     std::uint32_t texture = 0; // opaque GL texture name, 0 for none
     bool clipped = false;
-    Rect clip; // virtual pixels
+    bool mesh = false; // first/count index mesh_vertices() instead of instances()
+    Rect clip;         // virtual pixels
 };
 
 // Records a frame of 2D drawing in a virtual coordinate space (1920x1080 by
@@ -95,6 +103,9 @@ class DrawList
     // Five-pointed star centred at (cx, cy); outline > 0 draws only a stroke.
     void star(float cx, float cy, float radius, Color fill, float outline = 0.0f);
     void image(std::uint32_t texture, const Rect &r, const Rect &uv, Color tint);
+    // Filled simple polygon (convex or concave) from interleaved x, y pairs.
+    // Edges are not anti-aliased by the shader; draw into an MSAA target.
+    void polygon(const float *xy, int count, Color fill);
 
     // ---- text ----
     // font_texture is the GL texture holding font's atlas.
@@ -118,6 +129,10 @@ class DrawList
     const std::vector<Run> &runs() const
     {
         return runs_;
+    }
+    const std::vector<MeshVertex> &mesh_vertices() const
+    {
+        return mesh_;
     }
 
   private:
@@ -148,6 +163,8 @@ class DrawList
     Transform transform_;
     float opacity_ = 1.0f;
     std::vector<GlyphQuad> glyph_scratch_;
+    std::vector<MeshVertex> mesh_;
+    std::vector<std::uint32_t> index_scratch_;
 };
 
 // Letterboxes a virtual canvas into a surface: surface = virtual * scale + offset.

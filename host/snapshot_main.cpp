@@ -13,6 +13,8 @@
 #include "gfx/gl_program.hpp"
 #include "core/library.hpp"
 #include "games/registry.hpp"
+#include "games/sgt/sgt_catalog.hpp"
+#include "games/sgt/sgt_scene.hpp"
 #include "ui/gallery.hpp"
 #include "ui/library_scene.hpp"
 #include "ui/theme.hpp"
@@ -177,5 +179,37 @@ int main(int argc, char **argv)
     list.clear();
     scene.draw(list, fonts);
     ok = write("library-favorites") && ok;
+
+    // A few Tatham puzzles on the play screen, after some cursor input.
+    const char *puzzles[] = {"net",     "solo",     "mines", "loopy",
+                             "pattern", "untangle", "map",   "bridges"};
+    for (const char *id : puzzles)
+    {
+        const ppz::sgt::GameEntry *entry = ppz::sgt::find_game(id);
+        ppz::sgt::SgtScene game(*entry, batch, fonts, 1.0f);
+        game.start();
+        ppz::InputFrame step;
+        step.nav = ppz::Direction::right;
+        game.update(step, 0.016f, cues);
+        step.nav = ppz::Direction::down;
+        game.update(step, 0.016f, cues);
+        ppz::InputFrame select;
+        select.pressed = ppz::action_bit(ppz::Action::confirm);
+        game.update(select, 0.016f, cues);
+        for (int frame = 0; frame < 60; ++frame)
+            game.update(idle, 1.0f / 60.0f, cues);
+        if (std::string(id) == "solo")
+        {
+            ppz::InputFrame keys;
+            keys.pressed = ppz::action_bit(ppz::Action::north);
+            game.update(keys, 0.016f, cues);
+            for (int frame = 0; frame < 30; ++frame)
+                game.update(idle, 1.0f / 60.0f, cues);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        list.clear();
+        game.draw(list);
+        ok = write((std::string("game-") + id).c_str()) && ok;
+    }
     return ok ? 0 : 1;
 }

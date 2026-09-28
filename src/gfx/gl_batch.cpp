@@ -175,6 +175,30 @@ void main()
 }
 )";
 
+constexpr const char *kMeshVertex = R"(
+layout(location = 0) in vec2 a_position;
+layout(location = 1) in vec4 a_color;
+layout(location = 0) uniform vec4 u_viewport;
+layout(location = 1) uniform vec2 u_surface;
+out vec4 v_color;
+void main()
+{
+    vec2 surface = a_position * u_viewport.x + u_viewport.yz;
+    vec2 ndc = surface / u_surface * 2.0 - 1.0;
+    gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0);
+    v_color = a_color;
+}
+)";
+
+constexpr const char *kMeshFragment = R"(
+in vec4 v_color;
+out vec4 frag_color;
+void main()
+{
+    frag_color = v_color;
+}
+)";
+
 } // namespace
 
 GlBatch::~GlBatch()
@@ -185,13 +209,29 @@ GlBatch::~GlBatch()
         glDeleteVertexArrays(1, &vao_);
     if (program_ != 0)
         glDeleteProgram(program_);
+    if (mesh_buffer_ != 0)
+        glDeleteBuffers(1, &mesh_buffer_);
+    if (mesh_vao_ != 0)
+        glDeleteVertexArrays(1, &mesh_vao_);
+    if (mesh_program_ != 0)
+        glDeleteProgram(mesh_program_);
 }
 
 bool GlBatch::init()
 {
     program_ = build_program("batch2d", kVertex, kFragment);
-    if (program_ == 0)
+    mesh_program_ = build_program("mesh2d", kMeshVertex, kMeshFragment);
+    if (program_ == 0 || mesh_program_ == 0)
         return false;
+    glGenVertexArrays(1, &mesh_vao_);
+    glGenBuffers(1, &mesh_buffer_);
+    glBindVertexArray(mesh_vao_);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh_buffer_);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(MeshVertex), nullptr);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(MeshVertex),
+                          reinterpret_cast<const void *>(static_cast<std::uintptr_t>(8)));
     glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &buffer_);
     glBindVertexArray(vao_);
@@ -246,35 +286,60 @@ void GlBatch::draw(const DrawList &list, const Viewport &viewport, int surface_w
 {
     draw_calls_ = 0;
     const auto &instances = list.instances();
-    if (instances.empty())
+    const auto &mesh = list.mesh_vertices();
+    if (instances.empty() && mesh.empty())
         return;
-    glUseProgram(program_);
-    glBindVertexArray(vao_);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_);
     // Orphan, then fill: re-specifying storage avoids waiting on the GPU's
     // reads of the previous frame (ps5-opengl drains on same-size reuse).
-    capacity_ = std::max(capacity_, instances.size());
-    const auto bytes = static_cast<GLsizeiptr>(capacity_ * sizeof(Instance));
-    glBufferData(GL_ARRAY_BUFFER, bytes, nullptr, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0,
-                    static_cast<GLsizeiptr>(instances.size() * sizeof(Instance)), instances.data());
+    if (!instances.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, buffer_);
+        capacity_ = std::max(capacity_, instances.size());
+        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(capacity_ * sizeof(Instance)),
+                     nullptr, GL_STREAM_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0,
+                        static_cast<GLsizeiptr>(instances.size() * sizeof(Instance)),
+                        instances.data());
+    }
+    if (!mesh.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, mesh_buffer_);
+        mesh_capacity_ = std::max(mesh_capacity_, mesh.size());
+        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(mesh_capacity_ * sizeof(MeshVertex)),
+                     nullptr, GL_STREAM_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0,
+                        static_cast<GLsizeiptr>(mesh.size() * sizeof(MeshVertex)), mesh.data());
+    }
 
     glViewport(0, 0, surface_width, surface_height);
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
-    glUniform4f(0, viewport.scale, viewport.offset_x, viewport.offset_y, 0.0f);
-    glUniform2f(1, static_cast<float>(surface_width), static_cast<float>(surface_height));
+    for (GLuint program : {program_, mesh_program_})
+    {
+        glUseProgram(program);
+        glUniform4f(0, viewport.scale, viewport.offset_x, viewport.offset_y, 0.0f);
+        glUniform2f(1, static_cast<float>(surface_width), static_cast<float>(surface_height));
+    }
+    glUseProgram(program_);
     glUniform1i(2, 0);
     glActiveTexture(GL_TEXTURE0);
 
     GLuint bound_texture = 0;
     bool scissor = false;
+    bool mesh_bound = false;
+    glBindVertexArray(vao_);
     for (const Run &run : list.runs())
     {
         if (run.count == 0)
             continue;
+        if (run.mesh != mesh_bound)
+        {
+            mesh_bound = run.mesh;
+            glUseProgram(mesh_bound ? mesh_program_ : program_);
+            glBindVertexArray(mesh_bound ? mesh_vao_ : vao_);
+        }
         if (run.texture != 0 && run.texture != bound_texture)
         {
             glBindTexture(GL_TEXTURE_2D, run.texture);
@@ -300,8 +365,12 @@ void GlBatch::draw(const DrawList &list, const Viewport &viewport, int surface_w
             glDisable(GL_SCISSOR_TEST);
             scissor = false;
         }
-        glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, static_cast<GLsizei>(run.count),
-                                          run.first);
+        if (run.mesh)
+            glDrawArrays(GL_TRIANGLES, static_cast<GLint>(run.first),
+                         static_cast<GLsizei>(run.count));
+        else
+            glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, static_cast<GLsizei>(run.count),
+                                              run.first);
         ++draw_calls_;
     }
     if (scissor)

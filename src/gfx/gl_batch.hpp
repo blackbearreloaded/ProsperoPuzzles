@@ -46,6 +46,10 @@ class GlBatch
     GLuint vao_ = 0;
     GLuint buffer_ = 0;
     std::size_t capacity_ = 0; // instances
+    GLuint mesh_program_ = 0;
+    GLuint mesh_vao_ = 0;
+    GLuint mesh_buffer_ = 0;
+    std::size_t mesh_capacity_ = 0; // vertices
     std::size_t draw_calls_ = 0;
 };
 

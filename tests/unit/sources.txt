@@ -9,6 +9,7 @@ src/core/library.cpp
 src/core/save_file.cpp
 src/gfx/draw_list.cpp
 src/gfx/font.cpp
+src/gfx/triangulate.cpp
 src/games/sgt/sgt_catalog.cpp
 src/games/sgt/sgt_session.cpp
 src/third_party/sgt-puzzles/*.c

@@ -4,6 +4,8 @@
 
 #include "gfx/draw_list.hpp"
 
+#include "gfx/triangulate.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -43,6 +45,7 @@ void set4(float *out, float a, float b, float c, float d)
 void DrawList::clear()
 {
     instances_.clear();
+    mesh_.clear();
     runs_.clear();
     clips_.clear();
     transforms_.clear();
@@ -55,7 +58,7 @@ Instance &DrawList::append(std::uint32_t texture)
 {
     const bool clipped = !clips_.empty();
     const Rect clip = clipped ? clips_.back() : Rect{};
-    if (runs_.empty() ||
+    if (runs_.empty() || runs_.back().mesh ||
         (runs_.back().texture != texture && texture != 0 && runs_.back().texture != 0) ||
         !same_clip(runs_.back(), clipped, clip))
     {
@@ -72,6 +75,29 @@ Instance &DrawList::append(std::uint32_t texture)
     ++run.count;
     instances_.push_back(Instance{});
     return instances_.back();
+}
+
+void DrawList::polygon(const float *xy, int count, Color fill)
+{
+    index_scratch_.clear();
+    triangulate(xy, count, index_scratch_);
+    if (index_scratch_.empty())
+        return;
+    const bool clipped = !clips_.empty();
+    const Rect clip = clipped ? clips_.back() : Rect{};
+    if (runs_.empty() || !runs_.back().mesh || !same_clip(runs_.back(), clipped, clip))
+    {
+        Run run;
+        run.first = static_cast<std::uint32_t>(mesh_.size());
+        run.mesh = true;
+        run.clipped = clipped;
+        run.clip = clip;
+        runs_.push_back(run);
+    }
+    for (std::uint32_t index : index_scratch_)
+        mesh_.push_back({apply_x(xy[2 * index]), apply_y(xy[2 * index + 1]), fill.r, fill.g, fill.b,
+                         fill.a * opacity_});
+    runs_.back().count += static_cast<std::uint32_t>(index_scratch_.size());
 }
 
 Rect DrawList::apply(const Rect &r) const
