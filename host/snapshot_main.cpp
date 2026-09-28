@@ -12,6 +12,7 @@
 #include "gfx/gl_batch.hpp"
 #include "gfx/gl_program.hpp"
 #include "app/thumbnails.hpp"
+#include "art.hpp"
 #include "core/library.hpp"
 #include "ui/confetti.hpp"
 #include "ui/howto_card.hpp"
@@ -137,6 +138,17 @@ int main(int argc, char **argv)
                      path.c_str(), list.instances().size(), batch.last_draw_calls(), glGetError());
         return ok;
     };
+
+    // Presentation art only (PPZ_ART=1): tools/render-art.sh turns these into sce_sys files.
+    if (std::getenv("PPZ_ART") != nullptr)
+    {
+        ppz::app::Thumbnails thumbnails(batch, fonts, static_cast<float>(width) / 1920.0f);
+        for (const auto &game : ppz::games::all())
+            thumbnails.request(game.id, {});
+        thumbnails.pump(64);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        return ppz::host::render_art(list, fonts, thumbnails, write) ? 0 : 1;
+    }
 
     ppz::ui::GalleryState state;
     state.seconds = 1.25;
