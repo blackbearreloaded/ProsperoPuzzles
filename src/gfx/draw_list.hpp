@@ -49,6 +49,7 @@ enum class Shape : std::uint8_t
     image = 3,        // texture sampled over the rect, tinted
     capsule = 4,      // line segment with round caps
     triangle = 5,     // isosceles triangle pointing up inside the rect
+    star = 6,         // five-pointed star inscribed in the rect
 };
 
 // One instanced quad; field order matches the vertex attributes.
@@ -91,6 +92,8 @@ class DrawList
     void line(float x1, float y1, float x2, float y2, float thickness, Color color);
     // Upward triangle filling r; outline > 0 draws only a stroke of that width.
     void triangle(const Rect &r, Color fill, float outline = 0.0f);
+    // Five-pointed star centred at (cx, cy); outline > 0 draws only a stroke.
+    void star(float cx, float cy, float radius, Color fill, float outline = 0.0f);
     void image(std::uint32_t texture, const Rect &r, const Rect &uv, Color tint);
 
     // ---- text ----

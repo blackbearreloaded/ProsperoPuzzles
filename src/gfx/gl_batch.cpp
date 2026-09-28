@@ -97,6 +97,20 @@ float triangle(vec2 p, vec2 p0, vec2 p1, vec2 p2)
     return -sqrt(d.x) * sign(d.y);
 }
 
+float star5(vec2 p, float r, float rf)
+{
+    const vec2 k1 = vec2(0.809016994375, -0.587785252292);
+    const vec2 k2 = vec2(-k1.x, k1.y);
+    p.x = abs(p.x);
+    p -= 2.0 * max(dot(k1, p), 0.0) * k1;
+    p -= 2.0 * max(dot(k2, p), 0.0) * k2;
+    p.x = abs(p.x);
+    p.y -= r;
+    vec2 ba = rf * vec2(-k1.y, k1.x) - vec2(0.0, 1.0);
+    float h = clamp(dot(p, ba) / dot(ba, ba), 0.0, r);
+    return length(p - ba * h) * sign(p.y * ba.x - p.x * ba.y);
+}
+
 void main()
 {
     float px = 1.0 / u_viewport.x; // virtual units per output pixel
@@ -137,6 +151,14 @@ void main()
         vec2 ba = v_extra.zw - v_extra.xy;
         float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
         float d = length(pa - ba * h) - 0.5 * v_params.y;
+        color = vec4(fill.rgb, fill.a * clamp(0.5 - d / px, 0.0, 1.0));
+    }
+    else if (shape == 6)
+    {
+        vec2 p = vec2(v_local.x, -v_local.y);
+        float d = star5(p, min(v_half.x, v_half.y), 0.45);
+        if (v_params.y > 0.0)
+            d = abs(d + 0.5 * v_params.y) - 0.5 * v_params.y;
         color = vec4(fill.rgb, fill.a * clamp(0.5 - d / px, 0.0, 1.0));
     }
     else

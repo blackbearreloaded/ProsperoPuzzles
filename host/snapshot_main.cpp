@@ -11,7 +11,10 @@
 #include "gfx/font.hpp"
 #include "gfx/gl_batch.hpp"
 #include "gfx/gl_program.hpp"
+#include "core/library.hpp"
+#include "games/registry.hpp"
 #include "ui/gallery.hpp"
+#include "ui/library_scene.hpp"
 #include "ui/theme.hpp"
 
 #include <EGL/egl.h>
@@ -112,23 +115,67 @@ int main(int argc, char **argv)
         return 1;
 
     ppz::gfx::DrawList list;
+    std::vector<unsigned char> pixels(static_cast<std::size_t>(width * height * 4));
+    stbi_flip_vertically_on_write(1);
+    const auto write = [&](const char *name)
+    {
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        batch.draw(list, ppz::gfx::fit_viewport(width, height), width, height);
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+        const std::string path = output + "/" + name + ".png";
+        const bool ok =
+            stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4) != 0;
+        std::fprintf(stderr, "wrote %s: %zu instances, %zu draw calls, GL error 0x%x\n",
+                     path.c_str(), list.instances().size(), batch.last_draw_calls(), glGetError());
+        return ok;
+    };
+
     ppz::ui::GalleryState state;
     state.seconds = 1.25;
     state.held_actions = 0x0111; // up, confirm, jump_prev
     state.focused_card = 2;
     state.status = "host snapshot \xC2\xB7 llvmpipe";
+    list.clear();
     ppz::ui::draw_gallery(list, fonts, state);
+    bool ok = write("gallery");
 
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    batch.draw(list, ppz::gfx::fit_viewport(width, height), width, height);
-    std::vector<unsigned char> pixels(static_cast<std::size_t>(width * height * 4));
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    stbi_flip_vertically_on_write(1);
-    const std::string path = output + "/gallery.png";
-    if (!stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4))
-        return 1;
-    std::fprintf(stderr, "wrote %s: %zu instances, %zu draw calls, GL error 0x%x\n", path.c_str(),
-                 list.instances().size(), batch.last_draw_calls(), glGetError());
-    return 0;
+    // Library: three favorites, one game in progress, focus moved onto a card.
+    ppz::Library library(ppz::games::library_entries());
+    library.toggle_favorite("net");
+    library.toggle_favorite("lightup");
+    library.toggle_favorite("g2048");
+    library.set_in_progress("mines", true);
+    ppz::ui::LibraryScene scene(library);
+    std::vector<ppz::audio::Cue> cues;
+    ppz::InputFrame idle;
+    ppz::InputFrame right;
+    right.nav = ppz::Direction::right;
+    ppz::InputFrame down;
+    down.nav = ppz::Direction::down;
+    scene.update(down, 0.016f, cues);
+    scene.update(right, 0.016f, cues);
+    for (int frame = 0; frame < 90; ++frame)
+        scene.update(idle, 1.0f / 60.0f, cues);
+    list.clear();
+    scene.draw(list, fonts);
+    ok = write("library") && ok;
+
+    for (int step = 0; step < 4; ++step)
+        scene.update(down, 0.016f, cues);
+    for (int frame = 0; frame < 90; ++frame)
+        scene.update(idle, 1.0f / 60.0f, cues);
+    list.clear();
+    scene.draw(list, fonts);
+    ok = write("library-scrolled") && ok;
+
+    ppz::InputFrame filter;
+    filter.pressed = ppz::action_bit(ppz::Action::page_next);
+    scene.update(filter, 0.016f, cues);
+    for (int frame = 0; frame < 90; ++frame)
+        scene.update(idle, 1.0f / 60.0f, cues);
+    list.clear();
+    scene.draw(list, fonts);
+    ok = write("library-favorites") && ok;
+    return ok ? 0 : 1;
 }

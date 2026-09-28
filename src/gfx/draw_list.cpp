@@ -158,6 +158,16 @@ void DrawList::triangle(const Rect &r, Color fill, float outline)
     set4(i.params, 0.0f, outline * transform_.scale, 0.0f, static_cast<float>(Shape::triangle));
 }
 
+void DrawList::star(float cx, float cy, float radius, Color fill, float outline)
+{
+    Instance &i = append(0);
+    const Rect t = apply({cx - radius, cy - radius, radius * 2.0f, radius * 2.0f});
+    set4(i.rect, t.x, t.y, t.w, t.h);
+    set_color(i.color_top, fill);
+    set_color(i.color_bottom, fill);
+    set4(i.params, 0.0f, outline * transform_.scale, 0.0f, static_cast<float>(Shape::star));
+}
+
 void DrawList::image(std::uint32_t texture, const Rect &r, const Rect &uv, Color tint)
 {
     Instance &i = append(texture);
