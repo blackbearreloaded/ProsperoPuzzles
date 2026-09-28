@@ -5,6 +5,7 @@
 #include "games/native.hpp"
 
 #include "games/crowns/crowns_scene.hpp"
+#include "games/sokoban/sokoban_scene.hpp"
 
 namespace ppz::games
 {
@@ -21,6 +22,9 @@ constexpr NativeGame kNative[] = {
     {"crowns", "Crowns", "Royal placement puzzle",
      "Place one crown in every row, column and colour region, with no two touching.",
      &make<crowns::CrownsScene>},
+    {"sokoban", "Sokoban", "Warehouse crate pushing",
+     "Push every crate onto a target. Crates can only be pushed, one at a time.",
+     &make<sokoban::SokobanScene>},
 };
 
 } // namespace
