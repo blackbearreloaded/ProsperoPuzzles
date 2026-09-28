@@ -47,6 +47,13 @@ Shell::Shell(gfx::GlBatch &batch, const ui::Fonts &fonts, float surface_scale,
             sys::log("[PPZ] library.bin ignored: %s", decoded.error.c_str());
         }
     }
+    if (save::read_file(root_ + "/settings.bin", &data))
+    {
+        const auto decoded = save::decode(save::Kind::settings, data);
+        if (!decoded.ok || !decode_settings(decoded.payload, &settings_))
+            sys::log("[PPZ] settings.bin ignored: %s", decoded.error.c_str());
+    }
+    library_scene_.reduced_motion = settings_.reduced_motion;
     int resumable = 0;
     for (const games::GameInfo &game : games::all())
     {
@@ -109,6 +116,30 @@ void Shell::save_game()
     }
 }
 
+void Shell::save_settings()
+{
+    const std::string error = save::write_atomic(
+        root_ + "/settings.bin", save::encode(save::Kind::settings, 1, encode_settings(settings_)));
+    if (!error.empty())
+        sys::log("[PPZ] settings save failed: %s", error.c_str());
+}
+
+void Shell::open_details(const std::string &id)
+{
+    const games::GameInfo *game = games::find(id);
+    if (game == nullptr)
+        return;
+    details_id_ = id;
+    const bool resumable = library_.is_in_progress(id);
+    std::vector<ui::Menu::Item> items;
+    items.push_back({resumable ? "Resume" : "Play", 1});
+    if (resumable)
+        items.push_back({"New game", 2});
+    items.push_back({library_.is_favorite(id) ? "Remove from favorites" : "Add to favorites", 3});
+    items.push_back({"Close", 0});
+    details_.open(game->name, std::move(items), game->objective);
+}
+
 void Shell::toast(const std::string &text)
 {
     toast_text_ = text;
@@ -116,6 +147,11 @@ void Shell::toast(const std::string &text)
 }
 
 void Shell::launch(const std::string &id)
+{
+    start_game(id, false);
+}
+
+void Shell::start_game(const std::string &id, bool fresh)
 {
     const games::GameInfo *game = games::find(id);
     if (game == nullptr)
@@ -125,7 +161,7 @@ void Shell::launch(const std::string &id)
     }
     std::string save_data;
     std::string payload;
-    if (save::read_file(game_path(id), &save_data))
+    if (!fresh && save::read_file(game_path(id), &save_data))
     {
         const auto decoded = save::decode(save::Kind::game, save_data);
         if (decoded.ok)
@@ -220,6 +256,12 @@ void Shell::draw(gfx::DrawList &list) const
     {
     case Stage::library:
         library_scene_.draw(list, fonts_);
+        details_.draw(list, fonts_);
+        break;
+    case Stage::settings:
+        list.push_opacity(transition_.running ? p : 1.0f);
+        settings_scene_.draw(list, fonts_, "ProsperoPuzzles 01.000.000");
+        list.pop_opacity();
         break;
     case Stage::entering:
         // The library zooms toward the viewer and fades while the game arrives.

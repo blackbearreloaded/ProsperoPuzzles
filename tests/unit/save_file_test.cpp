@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "core/save_file.hpp"
+#include "core/settings.hpp"
 
 #include <gtest/gtest.h>
 
@@ -65,6 +66,24 @@ TEST(SaveFile, WritesAtomicallyAndReadsBack)
     unlink(path.c_str());
     rmdir(root.c_str());
     rmdir(directory);
+}
+
+TEST(Settings, RoundTripsAndClampsVolumes)
+{
+    ppz::Settings settings;
+    settings.music_volume = 3;
+    settings.swap_confirm = true;
+    ppz::Settings read;
+    ASSERT_TRUE(ppz::decode_settings(ppz::encode_settings(settings), &read));
+    EXPECT_EQ(read.music_volume, 3);
+    EXPECT_TRUE(read.swap_confirm);
+    std::string loud = ppz::encode_settings(settings);
+    loud[1] = 99; // music volume out of range
+    ASSERT_TRUE(ppz::decode_settings(loud, &read));
+    EXPECT_EQ(read.music_volume, 10);
+    EXPECT_FALSE(ppz::decode_settings("", &read));
+    EXPECT_FLOAT_EQ(ppz::Settings::gain(10), 1.0f);
+    EXPECT_FLOAT_EQ(ppz::Settings::gain(0), 0.0f);
 }
 
 } // namespace

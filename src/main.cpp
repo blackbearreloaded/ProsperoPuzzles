@@ -25,6 +25,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <span>
 #include <string>
 
@@ -106,10 +107,15 @@ int main()
     FrameStats stats;
     PadSample samples[64];
     gfx::DrawList list;
+    std::int64_t last_frame_start = sys::monotonic_us();
     for (;;)
     {
         const std::int64_t now = sys::monotonic_us();
-        const float dt = frames == 0 ? 1.0f / 60.0f : static_cast<float>(now - previous) / 1e6f;
+        // Animation time is start-to-start (one full frame), not the gap
+        // between the previous swap returning and this frame beginning.
+        const float dt =
+            frames == 0 ? 1.0f / 60.0f : static_cast<float>(now - last_frame_start) / 1e6f;
+        last_frame_start = now;
         const std::size_t count = pad.read(samples);
         const InputFrame input = tracker.update(std::span<const PadSample>(samples, count),
                                                 static_cast<std::uint64_t>(now));
@@ -121,12 +127,30 @@ int main()
                      input.nav_repeat ? 1 : 0, count, count > 0 ? samples[count - 1].buttons : 0u);
 
         shell.update(input, dt > 0.05f ? 0.05f : dt);
+        if (shell.take_settings_changed())
+        {
+            const Settings &settings = shell.settings();
+            mixer.set_bus_gain(audio::Bus::music, Settings::gain(settings.music_volume));
+            mixer.set_bus_gain(audio::Bus::sfx, Settings::gain(settings.sfx_volume));
+            mixer.set_bus_gain(audio::Bus::ui, Settings::gain(settings.ui_volume));
+            InputSettings input_settings = tracker.settings();
+            input_settings.swap_confirm = settings.swap_confirm;
+            tracker.set_settings(input_settings);
+        }
         const std::string game = shell.active_game();
         for (audio::Cue cue : shell.take_cues())
             sounds.play(mixer, cue, game);
 
         list.clear();
         shell.draw(list);
+        if (shell.settings().show_fps)
+        {
+            char fps[64];
+            std::snprintf(fps, sizeof(fps), "%.2f ms  %zu draws", static_cast<double>(dt) * 1000.0,
+                          batch.last_draw_calls());
+            list.text(regular, fonts.regular_texture, fps, 1900, 30, 20,
+                      gfx::Color::rgb(0xffffff, 0.7f), gfx::Align::right);
+        }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

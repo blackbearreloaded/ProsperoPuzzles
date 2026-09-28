@@ -4,6 +4,8 @@
 
 #include "ui/menu.hpp"
 
+#include <algorithm>
+
 namespace ppz::ui
 {
 
@@ -82,8 +84,10 @@ void Menu::draw(gfx::DrawList &list, const Fonts &fonts) const
     list.rounded_rect({0, 0, 1920, 1080}, 0, gfx::Color::rgb(0x05070f, 0.6f));
     const float header = subtitle_.empty() ? 96.0f : 132.0f;
     const float height = header + kRowHeight * static_cast<float>(items_.size()) + 24.0f;
-    const gfx::Rect panel{960 - kPanelWidth * 0.5f, 540 - height * 0.5f + 24.0f * (1.0f - fade),
-                          kPanelWidth, height};
+    const float width =
+        std::clamp(fonts.regular->measure(subtitle_, 24) + 88.0f, kPanelWidth, 1600.0f);
+    const gfx::Rect panel{960 - width * 0.5f, 540 - height * 0.5f + 24.0f * (1.0f - fade), width,
+                          height};
     list.shadow({panel.x, panel.y + 18, panel.w, panel.h}, 30, 44, theme::kShadow);
     list.rounded_rect(panel, 30, theme::kPaper);
     list.text(*fonts.semibold, fonts.semibold_texture, title_, panel.x + 44, panel.y + 66, 38,
