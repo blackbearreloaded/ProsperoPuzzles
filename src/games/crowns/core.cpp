@@ -238,7 +238,9 @@ Puzzle generate(std::uint64_t seed, int side)
 std::vector<bool> conflicts(const Puzzle &puzzle, const std::array<std::uint8_t, kMaxCells> &marks)
 {
     const int n = puzzle.side;
-    std::vector<bool> bad(static_cast<std::size_t>(n * n), false);
+    std::vector<bool> bad(static_cast<std::size_t>(std::max(0, n * n)), false);
+    if (n <= 0)
+        return bad;
     std::vector<int> crowns;
     for (int i = 0; i < n * n; ++i)
         if (marks[static_cast<std::size_t>(i)] == kCrown)
