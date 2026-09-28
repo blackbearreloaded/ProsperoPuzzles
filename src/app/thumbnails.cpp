@@ -47,13 +47,14 @@ void Thumbnails::render_native(const std::string &id, const std::string &save)
 {
     const games::GameInfo *game = games::find(id);
     auto scene = game->create(fonts_);
-    auto *puzzle = dynamic_cast<kit::PuzzleScene *>(scene.get());
+    kit::PuzzleScene *puzzle = scene->as_puzzle();
     if (puzzle == nullptr)
         return;
     // The saved game, or a fixed medium demo board.
-    puzzle->start(save, {});
     if (save.empty())
         puzzle->new_puzzle(0x70726576696577ULL, 1);
+    else
+        puzzle->start(save, {});
     // Fit the board card into the thumbnail, keeping its shape.
     const gfx::Rect card = puzzle->preview_bounds();
     const float fit = std::min(ui::kThumbnailWidth / card.w, ui::kThumbnailHeight / card.h);

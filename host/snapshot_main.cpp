@@ -245,7 +245,7 @@ int main(int argc, char **argv)
             continue;
         auto scene = native.create(fonts);
         scene->start({}, {});
-        auto *puzzle = dynamic_cast<ppz::kit::PuzzleScene *>(scene.get());
+        ppz::kit::PuzzleScene *puzzle = scene->as_puzzle();
         if (puzzle != nullptr)
             puzzle->new_puzzle(20260928, 1);
         const ppz::Direction steps[] = {ppz::Direction::right, ppz::Direction::down,

@@ -106,6 +106,10 @@ class PuzzleScene : public games::GameScene
     {
         return info_.id;
     }
+    PuzzleScene *as_puzzle() override
+    {
+        return this;
+    }
 
     // Test hooks.
     bool menu_open() const

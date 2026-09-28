@@ -11,6 +11,11 @@
 #include <string>
 #include <vector>
 
+namespace ppz::kit
+{
+class PuzzleScene;
+}
+
 namespace ppz::games
 {
 
@@ -41,6 +46,13 @@ class GameScene
     virtual std::string save() = 0;
     virtual bool in_progress() = 0;
     virtual const std::string &id() const = 0;
+
+    // The shared-kit view of a native puzzle (previews, tests); the PS5
+    // build has no RTTI, so this stands in for dynamic_cast.
+    virtual kit::PuzzleScene *as_puzzle()
+    {
+        return nullptr;
+    }
 };
 
 } // namespace ppz::games
