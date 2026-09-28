@@ -43,6 +43,8 @@ class LibraryScene
     void draw(gfx::DrawList &list, const Fonts &fonts) const;
 
     void focus_game(const std::string &id);
+    // Re-reads the library after favorites or filters changed outside the scene.
+    void refresh();
     std::string focused_id() const;
     bool reduced_motion = false;
 

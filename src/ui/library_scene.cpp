@@ -132,6 +132,13 @@ std::string LibraryScene::focused_id() const
     return library_.entries()[items[static_cast<std::size_t>(focus_)].entry].id;
 }
 
+void LibraryScene::refresh()
+{
+    const std::string keep = focused_id();
+    relayout();
+    focus_game(keep);
+}
+
 void LibraryScene::focus_game(const std::string &id)
 {
     const int index = library_.index_of(id);
