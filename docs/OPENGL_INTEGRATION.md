@@ -9,17 +9,18 @@ can be re-checked when the boilerplate or the SDK is updated.
 
 | Setting | Value |
 | --- | --- |
-| Default SDK | ps5-opengl release `v0.4.1`, fetched by `tools/fetch-opengl-sdk.sh` |
-| Archive SHA-256 | `570fa3976af87e364945ec7da97f066089dc41d874931081e75ae6b19ed4f0af` |
-| `sdk/manifest.sha256` SHA-256 | `46638f4daa09e1a7d42fb5d8f4ced15658dacadd3d33f76f46d164f10be34952` |
-| Display profile | 1920×1080 at 60 Hz (`ps5_opengl_display.h`) |
+| Default SDK | ps5-opengl release `v0.5.0`, fetched by `tools/fetch-opengl-sdk.sh` |
+| Archive SHA-256 | `e0db666d7630ac922cc11897b3d2bdb337794360aeeea1f6305a14868946b665` |
+| `sdk/manifest.sha256` SHA-256 | `9ac6d1d2b9d98839e86a1179bdd23eb2b853d55c06526a66fe185ebb2fd47340` |
+| Display modes | 1080p, 1440p or 2160p chosen at runtime (`ps5_opengl_display_modes.h`) |
 | Override | `make PS5_OPENGL_PREFIX=<dir containing manifest.sha256>` |
 
-v0.4.1 is built from ps5-opengl `fe5dd4f` and includes the presentation fix
-`7d7fecb` ("register only scanout storage", 2026-09-23) that v0.3.0 lacked;
-the pre-fix code caused the first-swap `EGL_BAD_SURFACE` seen in an earlier
-app. CI and console builds use the same pinned release, so the published
-`.ffpfsc` and folder ZIP match what was tested on the console.
+v0.5.0 is one SDK for every display: the app picks 1920x1080, 2560x1440 or
+3840x2160 before starting EGL (`ps5::Display::open`), and the Resolution
+setting restarts EGL to switch (`restart_display` in `src/main.cpp`), rebuilding
+the batch renderer, font atlases and previews. It includes the presentation
+fix `7d7fecb` that v0.3.0 lacked. CI and console builds use the same pinned
+release, so the published `.ffpfsc` and folder ZIP match what was tested.
 
 `tools/prepare-opengl.sh` verifies the selected SDK's manifest, points
 `.deps/ps5-opengl/current` at it, and writes the linker group

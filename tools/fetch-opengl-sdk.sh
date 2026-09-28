@@ -9,9 +9,9 @@
 set -euo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-version=0.4.1
-archive_sha256=570fa3976af87e364945ec7da97f066089dc41d874931081e75ae6b19ed4f0af
-manifest_sha256=46638f4daa09e1a7d42fb5d8f4ced15658dacadd3d33f76f46d164f10be34952
+version=0.5.0
+archive_sha256=e0db666d7630ac922cc11897b3d2bdb337794360aeeea1f6305a14868946b665
+manifest_sha256=9ac6d1d2b9d98839e86a1179bdd23eb2b853d55c06526a66fe185ebb2fd47340
 url="https://github.com/blackbearreloaded/ps5-opengl/releases/download/v$version/ps5-opengl-sdk-$version.tar.gz"
 
 cache="$root/.deps/ps5-opengl"
