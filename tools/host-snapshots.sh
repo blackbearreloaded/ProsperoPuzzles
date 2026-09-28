@@ -12,7 +12,7 @@ build="$root/build/host-snapshots"
 ninja_begin "$build/build.ninja"
 
 sources=("$root/host/snapshot_main.cpp" "$root/host/art.cpp" "$root/host/platform_host.cpp" "$root/src/app/thumbnails.cpp"
-    "$root/src/core/library.cpp" "$root/src/core/save_file.cpp" "$root/src/gfx/draw_list.cpp"
+    "$root/src/core/library.cpp" "$root/src/core/version.cpp" "$root/src/core/save_file.cpp" "$root/src/gfx/draw_list.cpp"
     "$root/src/gfx/font.cpp" "$root/src/gfx/gl_batch.cpp" "$root/src/gfx/gl_program.cpp"
     "$root/src/games/registry.cpp" "$root/src/games/native.cpp" "$root/src/games/records.cpp" "$root/src/games/sgt/sgt_catalog.cpp"
     "$root/src/games/sgt/sgt_canvas.cpp" "$root/src/games/sgt/sgt_skin.cpp" "$root/src/games/sgt/sgt_scene.cpp"

@@ -10,6 +10,7 @@
 #include "audio/cues.hpp"
 #include "audio/mixer.hpp"
 #include "audio/music.hpp"
+#include "core/version.hpp"
 #include "core/frame_stats.hpp"
 #include "core/input.hpp"
 #include "core/save_file.hpp"
@@ -109,6 +110,9 @@ int main()
         sys::log("[PPZ] sound rejected %s", error.c_str());
 
     app::Shell shell(batch, fonts, viewport.scale, kDataRoot);
+    const std::string version = read_content_version("/app0/sce_sys/param.json");
+    shell.set_version(version);
+    sys::log("[PPZ] version %s", version.empty() ? "unknown" : version.c_str());
 
     std::int64_t previous = sys::monotonic_us();
     std::uint64_t frames = 0;

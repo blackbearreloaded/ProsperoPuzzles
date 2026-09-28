@@ -65,6 +65,8 @@ class LibraryScene
     void refresh();
     std::string focused_id() const;
     bool reduced_motion = false;
+    // Shown next to the game count (param.json contentVersion); empty hides it.
+    std::string version;
 
   private:
     struct Cell

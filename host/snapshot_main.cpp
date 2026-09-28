@@ -13,6 +13,7 @@
 #include "gfx/gl_program.hpp"
 #include "app/thumbnails.hpp"
 #include "art.hpp"
+#include "core/version.hpp"
 #include "games/kit/puzzle_scene.hpp"
 #include "games/native.hpp"
 #include "core/library.hpp"
@@ -170,6 +171,7 @@ int main(int argc, char **argv)
     library.set_completed("bridges", true);
     library.set_completed("crowns", true);
     ppz::ui::LibraryScene scene(library);
+    scene.version = ppz::read_content_version(assets + "/../sce_sys/param.json");
     ppz::app::Thumbnails thumbnails(batch, fonts, 1.0f);
     for (const auto &game : ppz::games::all())
         thumbnails.request(game.id, {});

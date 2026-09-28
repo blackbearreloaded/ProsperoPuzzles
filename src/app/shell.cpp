@@ -163,6 +163,12 @@ void Shell::open_details(const std::string &id)
     details_.open(game->name, std::move(items), game->objective, record_for(*game).line);
 }
 
+void Shell::set_version(const std::string &version)
+{
+    version_ = version;
+    library_scene_.version = version;
+}
+
 void Shell::toast(const std::string &text)
 {
     toast_text_ = text;
@@ -368,7 +374,9 @@ void Shell::draw(gfx::DrawList &list) const
         break;
     case Stage::settings:
         list.push_opacity(transition_.running ? p : 1.0f);
-        settings_scene_.draw(list, fonts_, "ProsperoPuzzles 01.000.000");
+        settings_scene_.draw(list, fonts_,
+                             version_.empty() ? std::string("ProsperoPuzzles")
+                                              : "ProsperoPuzzles  \xC2\xB7  Version " + version_);
         list.pop_opacity();
         break;
     case Stage::entering:

@@ -411,6 +411,9 @@ void LibraryScene::draw(gfx::DrawList &list, const Fonts &fonts) const
               theme::kTextDisplay, theme::kTextOnDark);
     char count[64];
     std::snprintf(count, sizeof(count), "%zu games", library_.entries().size());
+    if (!version.empty())
+        std::snprintf(count, sizeof(count), "%zu games  \xC2\xB7  Version %s",
+                      library_.entries().size(), version.c_str());
     list.text(*fonts.regular, fonts.regular_texture, count, kLeft, 200, theme::kTextBody,
               theme::kTextOnDarkMuted);
 

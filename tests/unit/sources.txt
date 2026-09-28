@@ -11,6 +11,7 @@ src/core/input.cpp
 src/core/library.cpp
 src/core/save_file.cpp
 src/core/settings.cpp
+src/core/version.cpp
 src/gfx/draw_list.cpp
 src/gfx/font.cpp
 src/gfx/triangulate.cpp

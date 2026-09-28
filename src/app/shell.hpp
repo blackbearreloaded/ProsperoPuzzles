@@ -44,6 +44,8 @@ class Shell
     // Game id whose sounds should use per-game overrides ("" in the library).
     std::string active_game() const;
 
+    // The app version (param.json contentVersion) for the library and Settings.
+    void set_version(const std::string &version);
     const Settings &settings() const
     {
         return settings_;
@@ -97,6 +99,7 @@ class Shell
     ui::Menu details_;
     Thumbnails thumbnails_{batch_, fonts_, surface_scale_};
     std::string details_id_;
+    std::string version_;
     ui::Confetti confetti_;
     ui::HowToCard howto_;
     std::uint32_t celebrations_ = 0;
