@@ -141,6 +141,23 @@ constexpr Override kOverrides[] = {
     {"unruly", 6, 0x4b5b86}, // COL_1
     {"unruly", 7, 0x6273a0}, // COL_1_HIGHLIGHT
     {"unruly", 8, 0x36436a}, // COL_1_LOWLIGHT
+    // Mines: raised light squares over a recessed revealed floor, and the
+    // classic number colours redrawn in the app's hues.
+    {"mines", 1, 0xd2cdc1},  // COL_BACKGROUND2 (revealed)
+    {"mines", 2, 0x4b8ed4},  // COL_1
+    {"mines", 3, 0x5f9e45},  // COL_2
+    {"mines", 4, 0xe0605e},  // COL_3
+    {"mines", 5, 0x5b59a8},  // COL_4
+    {"mines", 6, 0xb4545a},  // COL_5
+    {"mines", 7, 0x3c9290},  // COL_6
+    {"mines", 8, 0x28334f},  // COL_7
+    {"mines", 9, 0x8a8577},  // COL_8
+    {"mines", 14, 0x28334f}, // COL_MINE
+    {"mines", 15, 0xe46f6f}, // COL_BANG
+    {"mines", 17, 0xe46f6f}, // COL_FLAG
+    {"mines", 18, 0x28334f}, // COL_FLAGBASE
+    {"mines", 20, 0xfffefa}, // COL_HIGHLIGHT
+    {"mines", 21, 0xbdb7aa}, // COL_LOWLIGHT
     // Black Box: the covered interior is a quiet tile, not a grey slab.
     {"blackbox", 1, 0xd8d3c8}, // COL_COVER
 };
