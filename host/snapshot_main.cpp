@@ -13,6 +13,7 @@
 #include "gfx/gl_program.hpp"
 #include "app/thumbnails.hpp"
 #include "core/library.hpp"
+#include "ui/confetti.hpp"
 #include "games/registry.hpp"
 #include "games/sgt/sgt_catalog.hpp"
 #include "games/sgt/sgt_scene.hpp"
@@ -236,6 +237,12 @@ int main(int argc, char **argv)
         list.clear();
         g2048.draw(list);
         ok = write("game-g2048") && ok;
+        ppz::ui::Confetti confetti;
+        confetti.burst(ppz::gfx::Color::rgb(0xf2b134), 7);
+        for (int frame = 0; frame < 32; ++frame)
+            confetti.update(1.0f / 60.0f);
+        confetti.draw(list);
+        ok = write("game-confetti") && ok;
     }
     {
         ppz::tenfold::TenfoldScene tenfold(fonts);

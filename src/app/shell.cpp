@@ -11,6 +11,8 @@
 #include "games/tenfold/tenfold_scene.hpp"
 #include "platform/ps5/system.hpp"
 
+#include <algorithm>
+
 #include <unistd.h>
 
 namespace ppz::app
@@ -206,18 +208,71 @@ void Shell::update(const InputFrame &input, float dt)
 {
     transition_.update(dt);
     toast_timer_.update(dt);
+    confetti_.update(dt);
     switch (stage_)
     {
     case Stage::library:
     {
+        thumbnails_.pump(2);
+        if (details_.is_open())
+        {
+            // The details menu owns input; the library keeps animating beneath.
+            const int choice = details_.update(input, dt, cues_);
+            library_scene_.update(InputFrame{}, dt, cues_);
+            if (choice == 1 || choice == 2)
+            {
+                details_.close();
+                start_game(details_id_, choice == 2);
+            }
+            else if (choice == 3)
+            {
+                const bool now = library_.toggle_favorite(details_id_);
+                library_scene_.refresh();
+                library_scene_.focus_game(details_id_);
+                save_library();
+                cues_.push_back(now ? audio::Cue::ui_favorite_on : audio::Cue::ui_favorite_off);
+                details_.close();
+            }
+            else if (choice == 0 || choice == ui::Menu::kCancelled)
+            {
+                details_.close();
+            }
+            break;
+        }
+        details_.update(InputFrame{}, dt, cues_);
         const ui::LibraryRequest request = library_scene_.update(input, dt, cues_);
         if (request.kind == ui::LibraryRequest::Kind::launch)
+        {
             launch(request.game_id);
+        }
         else if (request.kind == ui::LibraryRequest::Kind::favorites_changed)
+        {
             save_library();
-        else if (request.kind == ui::LibraryRequest::Kind::details ||
-                 request.kind == ui::LibraryRequest::Kind::settings)
-            toast("Coming soon");
+        }
+        else if (request.kind == ui::LibraryRequest::Kind::details)
+        {
+            open_details(request.game_id);
+        }
+        else if (request.kind == ui::LibraryRequest::Kind::settings)
+        {
+            stage_ = Stage::settings;
+            transition_.start(kTransitionSeconds);
+        }
+        break;
+    }
+    case Stage::settings:
+    {
+        const auto result = settings_scene_.update(input, dt, cues_);
+        if (result == ui::SettingsScene::Result::changed)
+        {
+            library_scene_.reduced_motion = settings_.reduced_motion;
+            settings_changed_ = true;
+            save_settings();
+        }
+        else if (result == ui::SettingsScene::Result::close)
+        {
+            stage_ = Stage::library;
+        }
         break;
     }
     case Stage::entering:
@@ -228,6 +283,12 @@ void Shell::update(const InputFrame &input, float dt)
     case Stage::game:
     {
         const games::SceneExit exit = game_->update(input, dt, cues_);
+        if (std::find(cues_.begin(), cues_.end(), audio::Cue::complete) != cues_.end())
+        {
+            const games::GameInfo *game = games::find(game_->id());
+            confetti_.burst(game != nullptr ? game->accent : ui::theme::kFocus,
+                            0x2545f491u * ++celebrations_, settings_.reduced_motion);
+        }
         autosave_ += dt;
         const bool moved = !cues_.empty();
         if (exit == games::SceneExit::library)
@@ -298,6 +359,7 @@ void Shell::draw(gfx::DrawList &list) const
         list.pop_opacity();
         break;
     }
+    confetti_.draw(list);
     if (toast_timer_.running)
     {
         const float t = toast_timer_.progress();

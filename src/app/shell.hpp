@@ -13,6 +13,7 @@
 #include "games/game_scene.hpp"
 #include "gfx/draw_list.hpp"
 #include "gfx/gl_batch.hpp"
+#include "ui/confetti.hpp"
 #include "ui/library_scene.hpp"
 #include "ui/menu.hpp"
 #include "ui/settings_scene.hpp"
@@ -92,6 +93,8 @@ class Shell
     ui::Menu details_;
     Thumbnails thumbnails_{batch_, fonts_, surface_scale_};
     std::string details_id_;
+    ui::Confetti confetti_;
+    std::uint32_t celebrations_ = 0;
 };
 
 } // namespace ppz::app

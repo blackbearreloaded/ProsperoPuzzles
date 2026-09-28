@@ -15,6 +15,7 @@ src/gfx/triangulate.cpp
 src/games/g2048/g2048_scene.cpp
 src/games/registry.cpp
 src/games/tenfold/tenfold_scene.cpp
+src/ui/confetti.cpp
 src/ui/menu.cpp
 src/games/sgt/sgt_catalog.cpp
 src/ui/library_scene.cpp
