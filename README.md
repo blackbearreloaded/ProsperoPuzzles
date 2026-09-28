@@ -26,7 +26,7 @@
 
 Demo available by clicking the image below.
 
-[![ProsperoPuzzles library on PS5](docs/images/prosperopuzzles.png)](https://i.imgur.com/Q3VpZFS.mp4)
+[![ProsperoPuzzles library on PS5](docs/images/prosperopuzzles.png)](https://i.imgur.com/Inx7hGz.mp4)
 
 ## Highlights
 
