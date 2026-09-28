@@ -110,7 +110,7 @@ Decoded decode(Kind kind, std::string_view data)
 std::string write_atomic(const std::string &path, std::string_view data)
 {
     const std::string temporary = path + ".tmp";
-    const int fd = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    const int fd = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0)
         return errno_text("open");
     std::size_t written = 0;
@@ -187,7 +187,7 @@ bool read_file(const std::string &path, std::string *data, std::size_t max_bytes
 
 bool ensure_directory(const std::string &path)
 {
-    if (::mkdir(path.c_str(), 0700) == 0 || errno == EEXIST)
+    if (::mkdir(path.c_str(), 0755) == 0 || errno == EEXIST)
     {
         struct stat info
         {
