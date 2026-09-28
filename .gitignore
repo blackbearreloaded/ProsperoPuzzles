@@ -4,6 +4,7 @@
 
 .local/
 .deps/
+results/
 .env
 __pycache__/
 *.pyc

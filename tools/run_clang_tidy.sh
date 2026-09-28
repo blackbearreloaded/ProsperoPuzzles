@@ -30,14 +30,16 @@ if (( ${#test_sources[@]} )); then
         -std=c++20 -I"$root/src" -isystem "$gtest/googletest/include"
 fi
 
-mapfile -d '' app_c_sources < <(find "$root/src" -type f -name '*.c' -print0)
+# Vendored upstream code under src/third_party is excluded from the analyzer profile.
+mapfile -d '' app_c_sources < <(find "$root/src" -path "$root/src/third_party" -prune \
+    -o -type f -name '*.c' -print0)
 if (( ${#app_c_sources[@]} )); then
     "$tidy" "${app_c_sources[@]}" --quiet --warnings-as-errors='*' -- \
         -std=c11 -isystem "$sdk/target/include"
 fi
 
-mapfile -d '' app_cpp_sources < <(find "$root/src" -type f \
-    \( -name '*.cc' -o -name '*.cpp' \) -print0)
+mapfile -d '' app_cpp_sources < <(find "$root/src" -path "$root/src/third_party" -prune \
+    -o -type f \( -name '*.cc' -o -name '*.cpp' \) -print0)
 app_cpp_sources+=("$root/tooling/native/app_crt.cpp" "$root/tooling/native/app_cpp_runtime.cpp")
 if (( ${#app_cpp_sources[@]} )); then
     "$tidy" "${app_cpp_sources[@]}" --quiet --warnings-as-errors='*' -- \

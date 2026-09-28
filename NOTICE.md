@@ -1,5 +1,10 @@
 # Notices
 
+ProsperoPuzzles is Copyright (C) 2026 BlackBearReloaded and licensed under
+GPL-3.0-or-later. It is built on `ps5-native-app-boilerplate`; the notices
+below cover the boilerplate's dependencies and every third-party component the
+project adds.
+
 ## Native build dependencies
 
 The application build uses LLVM/Clang/lld, zlib 1.3.2, and the public

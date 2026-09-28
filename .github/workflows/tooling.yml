@@ -109,7 +109,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ps5-native-app-boilerplate-${{ github.sha }}
+          name: ProsperoPuzzles-${{ github.sha }}
           path: |
             dist/${{ env.TITLE_ID }}.ffpfsc
             dist/${{ env.TITLE_ID }}.zip
@@ -134,7 +134,7 @@ jobs:
         run: >-
           gh run download "$GITHUB_RUN_ID"
           --repo "$GITHUB_REPOSITORY"
-          --name "ps5-native-app-boilerplate-$GITHUB_SHA"
+          --name "ProsperoPuzzles-$GITHUB_SHA"
           --dir release
 
       - name: Prepare release assets
@@ -186,5 +186,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --verify-tag \
               --generate-notes \
-              --title "PS5 Native App Boilerplate $GITHUB_REF_NAME"
+              --title "ProsperoPuzzles $GITHUB_REF_NAME"
           fi
