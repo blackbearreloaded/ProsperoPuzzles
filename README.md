@@ -26,8 +26,7 @@
 
 Demo available by clicking the image below.
 
-<!-- TODO: replace the screenshot path and the video link. -->
-[![ProsperoPuzzles screenshot (placeholder)](docs/images/prosperopuzzles.png)](https://example.com/prosperopuzzles-demo-video)
+[![ProsperoPuzzles library on PS5](docs/images/prosperopuzzles.png)](https://i.imgur.com/Q3VpZFS.mp4)
 
 ## Highlights
 
