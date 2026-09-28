@@ -7,8 +7,9 @@
 #
 # Every audio file ffmpeg can read (MP3, WAV, FLAC, M4A, OGG...) becomes
 # assets/audio/music/<name>.ogg: OGG Vorbis, 48 kHz stereo, quality 6, levelled
-# to -18 LUFS with true peak at or below -1 dBTP, silence trimmed at both ends
-# and a short fade at the end. All of them join the shuffled playlist.
+# to -18 LUFS with true peak at or below -1 dBTP (-2 before encoding, as Vorbis
+# overshoots a little), silence trimmed at both ends and a short fade at the
+# end. All of them join the shuffled playlist.
 
 set -euo pipefail
 
@@ -29,7 +30,7 @@ for song in "$source_dir"/*.{mp3,wav,flac,m4a,aac,ogg,opus}; do
     duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$trimmed")
     fade_start=$(awk -v d="$duration" 'BEGIN { s = d - 2; if (s < 0) s = 0; print s }')
     ffmpeg -v error -y -i "$trimmed" -af \
-        "loudnorm=I=-18:TP=-1:LRA=11,afade=t=in:d=0.05,afade=t=out:st=$fade_start:d=2" \
+        "loudnorm=I=-18:TP=-2:LRA=11,afade=t=in:d=0.05,afade=t=out:st=$fade_start:d=2" \
         -ar 48000 -ac 2 -c:a libvorbis -q:a 6 "$out/$name.ogg"
     rm -f "$trimmed"
     printf '%s -> %s.ogg (%.0f s)\n' "$(basename "$song")" "$name" "$duration"

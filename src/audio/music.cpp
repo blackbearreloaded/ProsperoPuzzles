@@ -21,6 +21,9 @@ namespace ppz::audio
 namespace
 {
 
+// Music is a backdrop: half level under everything else, before the Music
+// slider in Settings.
+constexpr float kBaseGain = 0.5f;
 constexpr float kDuckSeconds = 2.5f;
 constexpr float kDuckGain = 0.5f;     // -6 dB
 constexpr float kGapSeconds = 1.5f;   // quiet breath between songs
@@ -146,7 +149,7 @@ int MusicPlayer::init(Mixer &mixer, const std::string &directory, std::uint64_t 
     mixer_ = &mixer;
     directory_ = directory;
     mixer.attach_stream(0, &ring_);
-    mixer.set_stream_gain(0, 1.0f, 0.0f);
+    mixer.set_stream_gain(0, kBaseGain, 0.0f);
     mixer.set_stream_gain(1, 0.0f, 0.0f);
 
     if (DIR *dir = ::opendir(directory.c_str()))
@@ -204,7 +207,7 @@ void MusicPlayer::duck()
 void MusicPlayer::apply_gain(float seconds)
 {
     if (mixer_ != nullptr)
-        mixer_->set_stream_gain(0, duck_ > 0.0f ? kDuckGain : 1.0f, seconds);
+        mixer_->set_stream_gain(0, kBaseGain * (duck_ > 0.0f ? kDuckGain : 1.0f), seconds);
 }
 
 void MusicPlayer::pump(float dt)
