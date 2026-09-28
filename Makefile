@@ -111,6 +111,10 @@ assets-check:
 	@printf '%s\n' '==> [assets] Validating icon, backgrounds, and selection audio'
 	@bash tools/validate-assets.sh
 
+audio-check:
+	@printf '%s\n' '==> [audio] Validating sound effects and music (PLAN.md Appendix A)'
+	@python3 tools/audio-check.py
+
 libc:
 	@printf '%s\n' '==> [libc] Rebuilding and verifying the clean-room runtime'
 	@bash tools/rebuild-libc.sh
