@@ -1,5 +1,6 @@
 # Platform-neutral application sources compiled into build/tests/unit_tests.
 # One repository-relative path (or glob) per line; '#' starts a comment.
+host/platform_host.cpp
 src/audio/cues.cpp
 src/audio/mixer.cpp
 src/audio/wav.cpp
@@ -10,6 +11,9 @@ src/core/save_file.cpp
 src/gfx/draw_list.cpp
 src/gfx/font.cpp
 src/gfx/triangulate.cpp
+src/games/registry.cpp
 src/games/sgt/sgt_catalog.cpp
+src/ui/library_scene.cpp
+src/ui/theme.cpp
 src/games/sgt/sgt_session.cpp
 src/third_party/sgt-puzzles/*.c

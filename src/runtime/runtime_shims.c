@@ -20,6 +20,7 @@ extern int sceKernelUsleep(uint32_t microseconds);
 __attribute__((constructor)) static void ppz_open_log(void)
 {
     mkdir(PPZ_DATA_DIR, 0755);
+    chmod(PPZ_DATA_DIR, 0755); /* earlier builds created it private */
     /* Keep the previous launch's log for post-close inspection. */
     rename(PPZ_LOG_PATH, PPZ_DATA_DIR "/app.prev.log");
     FILE *stream = freopen(PPZ_LOG_PATH, "w", stdout);

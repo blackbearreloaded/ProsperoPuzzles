@@ -115,6 +115,10 @@ int main()
                                                 static_cast<std::uint64_t>(now));
         if (input.focus_lost)
             sys::log("[PPZ] input focus lost connected=%d", input.connected ? 1 : 0);
+        if (input.pressed != 0 || input.nav != Direction::none)
+            sys::log("[PPZ] input pressed=0x%x held=0x%x nav=%d repeat=%d samples=%zu raw=0x%x",
+                     input.pressed, input.held, static_cast<int>(input.nav),
+                     input.nav_repeat ? 1 : 0, count, count > 0 ? samples[count - 1].buttons : 0u);
 
         shell.update(input, dt > 0.05f ? 0.05f : dt);
         const std::string game = shell.active_game();

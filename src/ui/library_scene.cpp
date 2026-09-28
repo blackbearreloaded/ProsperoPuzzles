@@ -5,6 +5,7 @@
 #include "ui/library_scene.hpp"
 
 #include "games/registry.hpp"
+#include "platform/ps5/system.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -152,6 +153,10 @@ void LibraryScene::move_focus(int item, std::vector<audio::Cue> &cues, audio::Cu
         return;
     focus_ = item;
     cues.push_back(cue);
+    const Cell &cell = cells_[static_cast<std::size_t>(item)];
+    sys::log("[PPZ] library focus=%s index=%d row=%d/%d y=%.0f scroll=%.0f->%.0f",
+             focused_id().c_str(), item, cell.row, rows_, static_cast<double>(cell.y),
+             static_cast<double>(scroll_.value), static_cast<double>(scroll_.target));
 }
 
 LibraryRequest LibraryScene::update(const InputFrame &input, float dt,
