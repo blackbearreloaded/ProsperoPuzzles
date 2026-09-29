@@ -315,6 +315,4 @@ and PS5 are trademarks of Sony Interactive Entertainment. ProsperoPuzzles is an
 independent homebrew project and is not affiliated with or endorsed by Sony
 Interactive Entertainment or Simon Tatham.
 
-This project was developed with assistance from Anthropic's Claude. Project
-maintainers reviewed and validated the resulting code, tests, documentation,
-dependencies and generated assets.
+This project was developed with AI assistance from OpenAI and/or Anthropic tools.
