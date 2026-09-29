@@ -287,6 +287,8 @@ See [Configuration](docs/CONFIGURATION.md).
 
 ## Credits, third-party software, and licenses
 
+Built with the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) by John Törnblom (ps5-payload-dev).
+
 ProsperoPuzzles exists thanks to the maintainers and contributors of:
 
 - [Simon Tatham's Portable Puzzle Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/)
