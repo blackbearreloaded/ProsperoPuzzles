@@ -25,7 +25,7 @@ comment syntax and the one-line description):
 
 Files inherited from `ps5-native-app-boilerplate` keep their original header.
 Vendored upstream code under `src/third_party/` and `third_party/` keeps its
-upstream license header and is listed in `NOTICE.md`; local changes to it live
+upstream license header and is listed in `THIRD_PARTY_NOTICES.md`; local changes to it live
 as patches under `patches/`.
 
 Changes to `tooling/native/` must include a deterministic host check and a

@@ -18,7 +18,7 @@ checked=0
 for file in "${repository_files[@]}"; do
     [[ -f $file ]] || continue
     case "$file" in
-        # Vendored upstream code keeps its own license headers (see NOTICE.md).
+        # Vendored upstream code keeps its own license headers (see THIRD_PARTY_NOTICES.md).
         src/third_party/*|third_party/*|patches/*)
             continue
             ;;

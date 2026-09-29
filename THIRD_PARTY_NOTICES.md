@@ -1,4 +1,26 @@
-# Notices
+# Third-party notices
+
+## Credits and acknowledgements
+
+ProsperoPuzzles exists thanks to the maintainers and contributors of:
+
+- [Simon Tatham's Portable Puzzle Collection](https://www.chiark.greenend.org.uk/~sgtatham/puzzles/)
+  (MIT) for 40 of the games;
+- [ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl), with
+  [Mesa](https://mesa3d.org/) and OpenGNM PSBC, for OpenGL 4.6 on PS5;
+- [PS5 Native App Boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
+  and the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) for the
+  reproducible native foundation;
+- [Inter](https://github.com/rsms/inter) (SIL Open Font License) for the
+  interface font, and [stb](https://github.com/nothings/stb) for music decoding
+  and font baking;
+- [MkPFS](https://github.com/PSBrew/MkPFS),
+  [UFS2Tool](https://github.com/SvenGDK/UFS2Tool), LLVM/Clang, Python, zlib and
+  GoogleTest for build, packaging and validation tooling.
+
+The sound effects were generated for this project with ElevenLabs Sound
+Effects. The original artwork, soundtrack and selection music are distributed
+under the project license.
 
 ProsperoPuzzles is Copyright (C) 2026 BlackBearReloaded and licensed under
 GPL-3.0-or-later. It is built on `ps5-native-app-boilerplate`; the notices

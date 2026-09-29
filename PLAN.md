@@ -67,7 +67,7 @@ It is built on `ps5-native-app-boilerplate` and on `ps5-opengl` (OpenGL 4.6 Core
 
 **Licensing:**
 - Our code is GPL-3.0-or-later. Code copied from ProsperoLight and from the Yamagi port's own `src/ps5` / `native-app` files is the owner's own GPL-3.0 work. **Nothing is copied from upstream Yamagi.**
-- The Tatham collection is MIT, which is compatible. Its `LICENCE` text must ship with the app, so it goes in the About screen and in `NOTICE.md`.
+- The Tatham collection is MIT, which is compatible. Its `LICENCE` text must ship with the app, so it goes in the About screen and in `THIRD_PARTY_NOTICES.md`.
 
 ---
 
@@ -126,7 +126,7 @@ It is built on `ps5-native-app-boilerplate` and on `ps5-opengl` (OpenGL 4.6 Core
 
 ```
 ProsperoPuzzles/
-  Makefile  .env.example  build.ps1  README.md  PLAN.md  NOTICE.md  CHANGELOG.md  LICENSE
+  Makefile  .env.example  build.ps1  README.md  PLAN.md  THIRD_PARTY_NOTICES.md  CHANGELOG.md  LICENSE
   sce_sys/     param.json icon0.png pic0.dds pic1.dds snd0.at9 (+ *-source.png)
   assets/      fonts/*.sdf  audio/{sfx,music}/  audio/manifest.json  help/*.txt  -> /app0/assets
   third_party/ sgt-puzzles-docs/ (puzzles.but + LICENCE; not compiled)
@@ -616,7 +616,7 @@ Each milestone has host exit criteria. Some also have a single hardware run (R*n
    - Keep the SPDX and path-leak rules.
    - Add a header template to `CONTRIBUTING.md`.
 5. Delete `src/demo_renderer.*`, `tests/test_demo_renderer.cpp` and their references in `tools/build-tests.sh`, `docs/TESTING.md` and `README.md`.
-6. Commit stub `README.md`, `NOTICE.md` and `CHANGELOG.md`, plus this plan as `PLAN.md`.
+6. Commit stub `README.md`, `THIRD_PARTY_NOTICES.md` and `CHANGELOG.md`, plus this plan as `PLAN.md`.
 7. Create `.local/ENVIRONMENT.md` from the runbook's template. It stays gitignored.
 
 **A0:** `make lint test app` passes in WSL, and CI passes on the host jobs.
@@ -941,7 +941,7 @@ Each milestone has host exit criteria. Some also have a single hardware run (R*n
    - This is Yamagi's G6 bar.
 5. **Documentation:**
    - `README.md`: features, controls, building, deploying.
-   - `NOTICE.md`: Simon Tatham's Portable Puzzle Collection (MIT, with the full `LICENCE`), Mesa (MIT), ps5-opengl (GPL-3.0), opengnm/PSBC, stb (public domain or MIT), the font (OFL), and credit for the 2048 concept (Gabriele Cirulli, MIT).
+   - `THIRD_PARTY_NOTICES.md`: Simon Tatham's Portable Puzzle Collection (MIT, with the full `LICENCE`), Mesa (MIT), ps5-opengl (GPL-3.0), opengnm/PSBC, stb (public domain or MIT), the font (OFL), and credit for the 2048 concept (Gabriele Cirulli, MIT).
    - `CHANGELOG.md`.
    - `docs/HARDWARE_TESTING.md`.
 6. **CI:**
