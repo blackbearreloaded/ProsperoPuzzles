@@ -90,9 +90,9 @@ SDK. Those headers retain the Apache-2.0 WITH LLVM-exception license recorded
 upstream. The application does not redistribute or dynamically load the
 complete libc++ or libc++abi archives.
 
-The project’s PS5 ELF converter and FSELF writer are independently authored
-GPL-3.0-or-later code. SharpProspero was a useful public format reference during
-development but is not fetched, copied, linked, or required by the build.
+The PS5 ELF converter and FSELF writer in `tooling/native/` are derived from
+[SharpProspero](https://github.com/SvenGDK/SharpProspero), Copyright (C) 2026
+SvenGDK, GPL-3.0, and were translated to C++ and modified by BlackBearReloaded.
 
 ## Host test dependency
 
