@@ -225,8 +225,8 @@ in an order shuffled at each launch, and the list starts over after the last
 song. Music sits at 40% under everything else before the Music slider. Convert
 songs from any tool with `tools/prepare-music.sh <folder>` (OGG, 48 kHz,
 -18 LUFS). The home-screen selection music is `sce_sys/snd0.at9`, an ATRAC9
-loop made with the manual steps in
-[ps5-at9-converter](https://github.com/blackbearreloaded/ps5-at9-converter#manual-conversion-recommended).
+loop; create or replace it with
+[ps5-at9-converter](https://github.com/blackbearreloaded/ps5-at9-converter).
 
 ## Source layout
 
