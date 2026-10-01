@@ -9,13 +9,13 @@ can be re-checked when the boilerplate or the SDK is updated.
 
 | Setting | Value |
 | --- | --- |
-| Default SDK | ps5-opengl release `v0.5.0`, fetched by `tools/fetch-opengl-sdk.sh` |
+| Default SDK | ps5-opengl release `v1.0.0`, fetched by `tools/fetch-opengl-sdk.sh` |
 | Archive SHA-256 | `e0db666d7630ac922cc11897b3d2bdb337794360aeeea1f6305a14868946b665` |
 | `sdk/manifest.sha256` SHA-256 | `9ac6d1d2b9d98839e86a1179bdd23eb2b853d55c06526a66fe185ebb2fd47340` |
 | Display modes | 1080p, 1440p or 2160p chosen at runtime (`ps5_opengl_display_modes.h`) |
 | Override | `make PS5_OPENGL_PREFIX=<dir containing manifest.sha256>` |
 
-v0.5.0 is one SDK for every display: the app picks 1920x1080, 2560x1440 or
+v1.0.0 is one SDK for every display: the app picks 1920x1080, 2560x1440 or
 3840x2160 before starting EGL (`ps5::Display::open`), and the Resolution
 setting restarts EGL to switch (`restart_display` in `src/main.cpp`), rebuilding
 the batch renderer, font atlases and previews. It includes the presentation
