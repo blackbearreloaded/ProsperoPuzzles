@@ -4,9 +4,9 @@
 
 <h1 align="center">ProsperoPuzzles</h1>
 
-> **Latest release: [01.000.000](https://github.com/blackbearreloaded/ProsperoPuzzles/releases/tag/01.000.000).**
-> The first public release: 50 puzzle games, best-score records, sound effects,
-> a shuffled soundtrack and home-screen selection music.
+> **Latest release: [01.000.010](https://github.com/blackbearreloaded/ProsperoPuzzles/releases/tag/01.000.010).**
+> 50 puzzle games, best-score records, sound effects, a shuffled soundtrack and
+> home-screen selection music, now on the ps5-opengl SDK 1.0.0.
 > Please report problems through [GitHub issues](https://github.com/blackbearreloaded/ProsperoPuzzles/issues).
 
 <p align="center">
@@ -75,7 +75,7 @@ Demo available by clicking the image below.
 | Shell title | `ProsperoPuzzles` |
 | Title ID | `PPSA99006` |
 | Category | Game |
-| Current version | `01.000.000` |
+| Current version | `01.000.010` |
 | Version source | [`sce_sys/param.json`](sce_sys/param.json) |
 | Writable data | `/download0` only |
 
@@ -89,7 +89,7 @@ Demo available by clicking the image below.
 
 ## Current status
 
-Version `01.000.000` has been exercised on PS5 hardware: every game generates
+Version `01.000.010` has been exercised on PS5 hardware: every game generates
 and plays, the library, settings and records persist across relaunches, and the
 app presents at a steady 60 FPS with sound effects, music and home-screen
 selection music. Broader validation across firmware versions, loaders and TVs
