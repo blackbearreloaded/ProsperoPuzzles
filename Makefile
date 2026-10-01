@@ -59,7 +59,7 @@ RUNTIME_INPUTS := tools/rebuild-libc.sh tools/build-host-tools.sh tools/ninja-bu
 	$(wildcard tooling/native/runtime/*.txt)
 HOST_UNIT_TEST := build/tests/unit_tests
 
-.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps opengl host-snapshots fonts pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
+.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps opengl host-snapshots host-transition fonts pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
 
 all: app
 build: app
@@ -168,6 +168,11 @@ check: lint test app
 host-snapshots:
 	@printf '%s\n' '==> [host-snapshots] Rendering UI scenes to build/snapshots (Mesa llvmpipe)'
 	@bash tools/host-snapshots.sh
+
+host-transition:
+	@printf '%s\n' '==> [host-transition] Writing the frames of leaving a game to build/transition'
+	@mkdir -p build/transition/data
+	@bash tools/host-transition.sh build/transition
 
 fonts:
 	@printf '%s\n' '==> [fonts] Baking SDF font atlases into assets/fonts'

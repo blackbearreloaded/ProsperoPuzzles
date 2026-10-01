@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Builds on ps5-opengl SDK 1.0.0, which passes the Khronos OpenGL 4.6
+  conformance test run.
+- Fixed a thin white line under the game grid while the library zooms in or
+  out around a game.
 - Created the project from `ps5-native-app-boilerplate` at `4f531c4`.
 - Configured the development identity `PPSA99031`.
 - Adopted the final title `PPSA99006`.

@@ -491,6 +491,10 @@ void LibraryScene::draw(gfx::DrawList &list, const Fonts &fonts) const
     const auto bottom = band(kViewBottom - 50.0f, kViewBottom);
     list.gradient_rect({0, kViewBottom - 50.0f, 1920, 50}, 0, bottom.first.with_alpha(0.0f),
                        bottom.second);
+    // The clip snaps to whole pixels while a fade under the zoom of a transition
+    // ends on a fraction of one: opaque caps keep a sliver of card from showing.
+    list.gradient_rect({0, kViewTop - 2.0f, 1920, 4}, 0, top.first, top.first);
+    list.gradient_rect({0, kViewBottom - 2.0f, 1920, 4}, 0, bottom.second, bottom.second);
 
     // A-Z rail: letters present in the list, the focused one highlighted.
     if (!cells_.empty())
