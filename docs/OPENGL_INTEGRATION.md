@@ -50,7 +50,7 @@ release, so the published `.ffpfsc` and folder ZIP match what was tested.
 | File | Role |
 | --- | --- |
 | `src/runtime/app_heap.c` | 128 MiB `sceLibcMspace` heap behind the `--wrap` allocator |
-| `src/runtime/runtime_shims.c` | Log receipt at `/download0/prosperopuzzles/app.log`, never-return `catchReturnFromMain`, Mesa TLS stub, libc gaps |
+| `src/runtime/runtime_shims.c` | Log receipt at `/data/prosperopuzzles/app.log`, never-return `catchReturnFromMain`, Mesa TLS stub, libc gaps |
 | `src/platform/ps5/display_egl.cpp` | EGL display, window surface (native handle 0, NULL attributes), GL 4.6 Core context, swap interval 1 |
 
 ## Rules for rendering code

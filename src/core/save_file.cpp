@@ -232,4 +232,59 @@ std::vector<std::string> list_files(const std::string &directory)
     return names;
 }
 
+MigrationResult migrate_legacy_data(const std::string &source_root,
+                                    const std::string &destination_root)
+{
+    MigrationResult result;
+    const auto copy = [&](const std::string &source, const std::string &destination)
+    {
+        struct stat info
+        {
+        };
+        if (::stat(destination.c_str(), &info) == 0)
+        {
+            ++result.skipped;
+            return;
+        }
+        if (::stat(source.c_str(), &info) != 0)
+        {
+            if (errno != ENOENT)
+                ++result.failed;
+            return;
+        }
+        std::string data;
+        if (!S_ISREG(info.st_mode) || !read_file(source, &data) ||
+            !write_atomic(destination, data).empty())
+        {
+            ++result.failed;
+            return;
+        }
+        ++result.copied;
+    };
+
+    copy(source_root + "/settings.bin", destination_root + "/settings.bin");
+    copy(source_root + "/library.bin", destination_root + "/library.bin");
+
+    const std::string source_games = source_root + "/games";
+    struct stat games_info
+    {
+    };
+    if (::stat(source_games.c_str(), &games_info) == 0)
+    {
+        const std::string destination_games = destination_root + "/games";
+        if (!S_ISDIR(games_info.st_mode) || !ensure_directory(destination_games))
+        {
+            ++result.failed;
+            return result;
+        }
+        for (const std::string &name : list_files(source_games))
+            copy(source_games + "/" + name, destination_games + "/" + name);
+    }
+    else if (errno != ENOENT)
+    {
+        ++result.failed;
+    }
+    return result;
+}
+
 } // namespace ppz::save

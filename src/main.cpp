@@ -20,6 +20,7 @@
 #include "gfx/gl_batch.hpp"
 #include "platform/ps5/audio_out.hpp"
 #include "platform/ps5/display_egl.hpp"
+#include "platform/ps5/elevation.hpp"
 #include "platform/ps5/pad.hpp"
 #include "platform/ps5/system.hpp"
 #include "ui/theme.hpp"
@@ -31,15 +32,19 @@
 #include <cstdio>
 #include <span>
 #include <string>
+#include <unistd.h>
 
 extern "C" void ppz_heap_stats(std::size_t *live_bytes, std::size_t *peak_bytes,
                                std::size_t *blocks, std::size_t *failures);
+extern "C" int ppz_open_log(void);
 
 namespace
 {
 
-constexpr const char *kAssets = "/app0/assets";
-constexpr const char *kDataRoot = "/download0/prosperopuzzles";
+constexpr const char *kAppRoot = "/data/homebrew/PPSA99006";
+constexpr const char *kAssets = "/data/homebrew/PPSA99006/assets";
+constexpr const char *kDataRoot = "/data/prosperopuzzles";
+constexpr const char *kLegacyDataRoot = "/download0/prosperopuzzles";
 
 void log_heap(std::uint64_t frames)
 {
@@ -117,8 +122,40 @@ bool load_font(const char *name, ppz::gfx::Font *font)
 int main()
 {
     using namespace ppz;
+    const elevation::Status elevation_status =
+        elevation::request(elevation::Capability::filesystem);
+    if (elevation_status != elevation::Status::ok)
+    {
+        sys::log("[PPZ] fatal: filesystem elevation status=%u",
+                 static_cast<unsigned>(elevation_status));
+        sys::park();
+    }
+    if (getegid() != getgid() && setegid(getgid()) != 0)
+    {
+        sys::log("[PPZ] fatal: could not normalize elevated group credentials");
+        sys::park();
+    }
+    if (!save::ensure_directory(kDataRoot))
+    {
+        sys::log("[PPZ] fatal: storage directory unavailable");
+        sys::park();
+    }
+    const save::MigrationResult migration = save::migrate_legacy_data(kLegacyDataRoot, kDataRoot);
+    if (migration.failed != 0)
+    {
+        sys::log("[PPZ] fatal: storage migration copied=%zu skipped=%zu failed=%zu",
+                 migration.copied, migration.skipped, migration.failed);
+        sys::park();
+    }
+    (void)ppz_open_log();
     sys::log("[PPZ] entry");
-    sys::log("[PPZ] storage dir=%d", save::ensure_directory(kDataRoot) ? 1 : 0);
+    sys::log("[PPZ] filesystem elevation status=%u", static_cast<unsigned>(elevation_status));
+    sys::log("[PPZ] credentials uid=%u/%u gid=%u/%u", static_cast<unsigned>(getuid()),
+             static_cast<unsigned>(geteuid()), static_cast<unsigned>(getgid()),
+             static_cast<unsigned>(getegid()));
+    sys::log("[PPZ] storage dir=%s", kDataRoot);
+    sys::log("[PPZ] storage migration copied=%zu skipped=%zu failed=%zu", migration.copied,
+             migration.skipped, migration.failed);
 
     // The display opens at the saved resolution (1080p if that fails).
     const Settings saved = app::Shell::load_settings(kDataRoot);
@@ -163,7 +200,7 @@ int main()
 
     app::Shell shell(batch, fonts, viewport.scale, kDataRoot);
     shell.set_applied_resolution(resolution);
-    const std::string version = read_content_version("/app0/sce_sys/param.json");
+    const std::string version = read_content_version(std::string(kAppRoot) + "/sce_sys/param.json");
     shell.set_version(version);
     sys::log("[PPZ] version %s", version.empty() ? "unknown" : version.c_str());
 

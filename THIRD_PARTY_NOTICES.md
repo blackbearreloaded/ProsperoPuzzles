@@ -11,6 +11,8 @@ ProsperoPuzzles exists thanks to the maintainers and contributors of:
 - [PS5 Native App Boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
   and the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) for the
   reproducible native foundation;
+- [PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon)
+  and its contributors for the cooperative filesystem-elevation protocol;
 - [Inter](https://github.com/rsms/inter) (SIL Open Font License) for the
   interface font, and [stb](https://github.com/nothings/stb) for music decoding
   and font baking;
@@ -93,6 +95,15 @@ complete libc++ or libc++abi archives.
 The PS5 ELF converter and FSELF writer in `tooling/native/` are derived from
 [SharpProspero](https://github.com/SvenGDK/SharpProspero), Copyright (C) 2026
 SvenGDK, GPL-3.0, and were translated to C++ and modified by BlackBearReloaded.
+
+## Filesystem elevation
+
+`src/platform/ps5/elevation.cpp` implements only the application side of the
+cooperative protocol published by
+[PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon).
+Lapy remains an external component and is not bundled, forked, or reimplemented
+by ProsperoPuzzles. The application contains no kernel offsets, credential
+mutation, file-descriptor-table mutation, or elevation payload.
 
 ## Host test dependency
 

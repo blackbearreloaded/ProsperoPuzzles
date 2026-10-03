@@ -70,6 +70,50 @@ TEST(SaveFile, WritesAtomicallyAndReadsBack)
     rmdir(directory);
 }
 
+TEST(SaveFile, MigratesLegacyDataWithoutOverwritingNewFiles)
+{
+    char directory[] = "/tmp/ppz-migrate-XXXXXX";
+    ASSERT_NE(mkdtemp(directory), nullptr);
+    const std::string source = std::string(directory) + "/old";
+    const std::string destination = std::string(directory) + "/new";
+    ASSERT_TRUE(ppz::save::ensure_directory(source));
+    ASSERT_TRUE(ppz::save::ensure_directory(source + "/games"));
+    ASSERT_TRUE(ppz::save::ensure_directory(destination));
+    ASSERT_EQ(ppz::save::write_atomic(source + "/settings.bin", "old-settings"), "");
+    ASSERT_EQ(ppz::save::write_atomic(source + "/library.bin", "old-library"), "");
+    ASSERT_EQ(ppz::save::write_atomic(source + "/games/net.sav", "old-game"), "");
+    ASSERT_EQ(ppz::save::write_atomic(destination + "/settings.bin", "new-settings"), "");
+
+    const auto first = ppz::save::migrate_legacy_data(source, destination);
+    EXPECT_EQ(first.copied, 2u);
+    EXPECT_EQ(first.skipped, 1u);
+    EXPECT_EQ(first.failed, 0u);
+    std::string data;
+    ASSERT_TRUE(ppz::save::read_file(destination + "/settings.bin", &data));
+    EXPECT_EQ(data, "new-settings");
+    ASSERT_TRUE(ppz::save::read_file(destination + "/library.bin", &data));
+    EXPECT_EQ(data, "old-library");
+    ASSERT_TRUE(ppz::save::read_file(destination + "/games/net.sav", &data));
+    EXPECT_EQ(data, "old-game");
+
+    const auto retry = ppz::save::migrate_legacy_data(source, destination);
+    EXPECT_EQ(retry.copied, 0u);
+    EXPECT_EQ(retry.skipped, 3u);
+    EXPECT_EQ(retry.failed, 0u);
+
+    unlink((destination + "/games/net.sav").c_str());
+    unlink((destination + "/library.bin").c_str());
+    unlink((destination + "/settings.bin").c_str());
+    unlink((source + "/games/net.sav").c_str());
+    unlink((source + "/library.bin").c_str());
+    unlink((source + "/settings.bin").c_str());
+    rmdir((destination + "/games").c_str());
+    rmdir(destination.c_str());
+    rmdir((source + "/games").c_str());
+    rmdir(source.c_str());
+    rmdir(directory);
+}
+
 TEST(Settings, RoundTripsAndClampsVolumes)
 {
     ppz::Settings settings;

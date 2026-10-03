@@ -14,25 +14,28 @@
 
 extern int sceKernelUsleep(uint32_t microseconds);
 
-#define PPZ_DATA_DIR "/download0/prosperopuzzles"
+#define PPZ_DATA_DIR "/data/prosperopuzzles"
 #define PPZ_LOG_PATH PPZ_DATA_DIR "/app.log"
 
-__attribute__((constructor)) static void ppz_open_log(void)
+static char ppz_log_buffer[1024u * 1024u];
+static char ppz_error_buffer[64u * 1024u];
+
+int ppz_open_log(void)
 {
-    mkdir(PPZ_DATA_DIR, 0755);
     chmod(PPZ_DATA_DIR, 0755); /* earlier builds created it private */
     /* Keep the previous launch's log for post-close inspection. */
     rename(PPZ_LOG_PATH, PPZ_DATA_DIR "/app.prev.log");
     FILE *stream = freopen(PPZ_LOG_PATH, "w", stdout);
-    /* Start a fresh receipt, then make both streams append-only and unbuffered
-     * so the log survives a shell close or a GPU fail-stop. */
+    /* Start a fresh receipt, then keep stdout buffered: ps5-opengl telemetry is
+     * chatty and synchronous writes to /data can stall rendering and audio. */
     if (stream != NULL)
         stream = freopen(PPZ_LOG_PATH, "a", stdout);
     if (stream != NULL)
-        setvbuf(stream, NULL, _IONBF, 0);
+        setvbuf(stream, ppz_log_buffer, _IOFBF, sizeof(ppz_log_buffer));
     stream = freopen(PPZ_LOG_PATH, "a", stderr);
     if (stream != NULL)
-        setvbuf(stream, NULL, _IONBF, 0);
+        setvbuf(stream, ppz_error_buffer, _IOFBF, sizeof(ppz_error_buffer));
+    return stream != NULL;
 }
 
 /* Returning from main or calling exit() crashes a native title; stay alive

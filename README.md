@@ -77,7 +77,7 @@ Demo available by clicking the image below.
 | Category | Game |
 | Current version | `01.000.010` |
 | Version source | [`sce_sys/param.json`](sce_sys/param.json) |
-| Writable data | `/download0` only |
+| Writable data | `/data/prosperopuzzles` through upstream Lapy |
 
 ## Games
 
@@ -111,6 +111,12 @@ the ps5-opengl SDK and packaging tools below ignored `.deps/` directories.
 Nothing is installed globally by the project build. See
 [Getting started](docs/GETTING_STARTED.md) and
 [Native tooling](docs/NATIVE_TOOLING.md) for clean-machine setup details.
+
+At runtime, an official upstream
+[PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon)
+owned-root service must be waiting for the app's cooperative request. The app
+contains no elevation payload and stops before loading saves if `/data` access
+cannot be proven.
 
 ## Build
 
@@ -175,8 +181,10 @@ keep the same version only build and test.
    the bottom of Settings.
 
 Keeping the title ID as `PPSA99006` preserves saved games, records and settings
-in `/download0`; `/app0` comes from the replacement, while the home-screen
+in `/data/prosperopuzzles`; `/app0` comes from the replacement, while the home-screen
 artwork and selection music may stay cached until ShadowMountPlus restarts.
+On the first elevated launch, files still under `/download0/prosperopuzzles`
+are copied automatically; existing `/data` files are never overwritten.
 
 ## Deploy
 

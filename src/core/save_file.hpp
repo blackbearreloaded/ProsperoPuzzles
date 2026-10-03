@@ -55,4 +55,17 @@ std::vector<std::string> list_files(const std::string &directory);
 // Creates a directory if it does not exist (single level).
 bool ensure_directory(const std::string &path);
 
+struct MigrationResult
+{
+    std::size_t copied = 0;
+    std::size_t skipped = 0;
+    std::size_t failed = 0;
+};
+
+// Copies the legacy settings, library and game files into destination_root.
+// Existing destination files always win, making interrupted migrations safe
+// to retry on the next launch.
+MigrationResult migrate_legacy_data(const std::string &source_root,
+                                    const std::string &destination_root);
+
 } // namespace ppz::save
