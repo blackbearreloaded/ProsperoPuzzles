@@ -112,11 +112,17 @@ Nothing is installed globally by the project build. See
 [Getting started](docs/GETTING_STARTED.md) and
 [Native tooling](docs/NATIVE_TOOLING.md) for clean-machine setup details.
 
-At runtime, an official upstream
-[PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon)
-owned-root service must be waiting for the app's cooperative request. The app
-contains no elevation payload and stops before loading saves if `/data` access
-cannot be proven.
+> [!IMPORTANT]
+> ProsperoPuzzles requires the official upstream
+> [PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon)
+> to be installed **and already running on the PS5 before every app launch**.
+> Installing Lapy without starting its daemon is not enough. If the daemon is
+> unavailable, ProsperoPuzzles waits about 10 seconds and then stops before the
+> interface appears, which looks like a black screen.
+
+ProsperoPuzzles only sends Lapy a cooperative elevation request. It does not
+bundle, upload, start or execute a Lapy ELF. The app stops before loading saves
+if `/data` access cannot be proven.
 
 ## Build
 
