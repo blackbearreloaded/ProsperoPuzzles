@@ -10,27 +10,33 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 extern int sceKernelUsleep(uint32_t microseconds);
 
-#define PPZ_DATA_DIR "/download0/prosperopuzzles"
-#define PPZ_LOG_PATH PPZ_DATA_DIR "/app.log"
-
-__attribute__((constructor)) static void ppz_open_log(void)
+/* The app log receipt, in the app's data folder. main opens it once filesystem
+ * access has decided where that is (platform/ps5/storage.hpp). */
+void ppz_open_log(const char *directory)
 {
-    mkdir(PPZ_DATA_DIR, 0755);
-    chmod(PPZ_DATA_DIR, 0755); /* earlier builds created it private */
+    char path[160];
+    char previous[160];
+    if (strlen(directory) > sizeof(path) - 16)
+        return;
+    mkdir(directory, 0777);
+    chmod(directory, 0777); /* earlier builds created it private */
+    snprintf(path, sizeof(path), "%s/app.log", directory);
+    snprintf(previous, sizeof(previous), "%s/app.prev.log", directory);
     /* Keep the previous launch's log for post-close inspection. */
-    rename(PPZ_LOG_PATH, PPZ_DATA_DIR "/app.prev.log");
-    FILE *stream = freopen(PPZ_LOG_PATH, "w", stdout);
+    rename(path, previous);
+    FILE *stream = freopen(path, "w", stdout);
     /* Start a fresh receipt, then make both streams append-only and unbuffered
      * so the log survives a shell close or a GPU fail-stop. */
     if (stream != NULL)
-        stream = freopen(PPZ_LOG_PATH, "a", stdout);
+        stream = freopen(path, "a", stdout);
     if (stream != NULL)
         setvbuf(stream, NULL, _IONBF, 0);
-    stream = freopen(PPZ_LOG_PATH, "a", stderr);
+    stream = freopen(path, "a", stderr);
     if (stream != NULL)
         setvbuf(stream, NULL, _IONBF, 0);
 }
@@ -66,24 +72,5 @@ int mkstemps(char *template_name, int suffix_length)
     return -1;
 }
 
-void openlog(const char *identifier, int option, int facility)
-{
-    (void)identifier;
-    (void)option;
-    (void)facility;
-}
-
-FILE *popen(const char *command, const char *mode)
-{
-    (void)command;
-    (void)mode;
-    errno = ENOSYS;
-    return NULL;
-}
-
-int pclose(FILE *stream)
-{
-    (void)stream;
-    errno = ENOSYS;
-    return -1;
-}
+/* openlog, popen and pclose, which Mesa also references, come from
+ * update/console_curl.c (libcurl asks for them too). */

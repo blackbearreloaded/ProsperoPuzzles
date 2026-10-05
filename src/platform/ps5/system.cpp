@@ -14,10 +14,23 @@ extern "C"
     int sceKernelDebugOutText(int channel, const char *text);
     int sceKernelUsleep(unsigned int microseconds);
     int sceSystemServiceHideSplashScreen(void);
+    int sceSystemServiceLoadExec(const char *path, const char **arguments);
+    void ppz_open_log(const char *directory);
 }
 
 namespace ppz::sys
 {
+
+namespace
+{
+
+// Lines logged before the log file is open (filesystem access decides where
+// it is) wait here; klog has them at once.
+bool log_open = false;
+char early[4096];
+std::size_t early_used = 0;
+
+} // namespace
 
 std::int64_t monotonic_us()
 {
@@ -40,8 +53,26 @@ void log(const char *format, ...)
     std::size_t used = std::strlen(line);
     line[used] = '\n';
     line[used + 1] = '\0';
-    std::fputs(line, stdout);
     sceKernelDebugOutText(0, line);
+    if (log_open)
+    {
+        std::fputs(line, stdout);
+        return;
+    }
+    used = std::strlen(line);
+    if (used < sizeof(early) - early_used)
+    {
+        std::memcpy(early + early_used, line, used);
+        early_used += used;
+    }
+}
+
+void open_log(const char *directory)
+{
+    ppz_open_log(directory);
+    log_open = true;
+    std::fwrite(early, 1, early_used, stdout);
+    early_used = 0;
 }
 
 bool hide_splash_screen()
@@ -59,6 +90,13 @@ void park()
     std::fflush(nullptr);
     for (;;)
         sceKernelUsleep(100000);
+}
+
+void exit_app()
+{
+    std::fflush(nullptr);
+    sceSystemServiceLoadExec("exit", nullptr);
+    park();
 }
 
 } // namespace ppz::sys

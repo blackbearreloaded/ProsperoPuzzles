@@ -26,6 +26,17 @@ override APP_STATIC_ARCHIVES := $(strip .deps/ps5-opengl/libps5opengl-group.a $(
 override APP_IMPORT_STUBS := $(strip $(OPENGL_SDK)/lib/libSceAgc.so \
 	$(OPENGL_SDK)/lib/libSceAgcDriver.so $(APP_IMPORT_STUBS))
 PACBREW_PACKAGES ?=
+APP_WRAP_SYMBOLS ?=
+APP_ROOT_FILES ?=
+# Filesystem access (docs/STORAGE.md): the package carries upstream Lapy's
+# exact-title one-shot helper. 0 leaves it out; the app then stays sandboxed.
+APP_LAPY_HELPER ?= 1
+# The update check and self-update (docs/UPDATES.md): libcurl with its fcntl
+# wrapper, and the helper the app sends to the console's payload loader.
+SELF_UPDATE_HELPER := build/self-update/self-updater.elf
+override PACBREW_PACKAGES := $(strip libcurl $(PACBREW_PACKAGES))
+override APP_WRAP_SYMBOLS := $(strip fcntl $(APP_WRAP_SYMBOLS))
+override APP_ROOT_FILES := $(strip $(SELF_UPDATE_HELPER) $(APP_ROOT_FILES))
 PACBREW_INCLUDE_PATHS ?=
 PACBREW_STATIC_ARCHIVES ?=
 PS5_HOST ?=
@@ -39,6 +50,7 @@ APP_NAME ?=
 APP_CATEGORY ?= game
 CONTENT_SUFFIX ?=
 HOST_CXX ?= clang++
+HOST_CC ?= clang
 HOST_TEST_CXXFLAGS ?= -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror \
 	-ffunction-sections -fdata-sections
 HOST_TEST_LDFLAGS ?= -Wl,--gc-sections
@@ -49,6 +61,7 @@ export BUILD_JOBS USE_CCACHE
 export HOST_CXX HOST_TEST_CXXFLAGS HOST_TEST_LDFLAGS
 export APP_DEFINITIONS APP_INCLUDE_PATHS APP_STATIC_ARCHIVES APP_IMPORT_STUBS APP_RUNTIME_MODULES
 export PS5_OPENGL_PREFIX
+export APP_WRAP_SYMBOLS APP_ROOT_FILES APP_LAPY_HELPER
 export PACBREW_PACKAGES PACBREW_INCLUDE_PATHS PACBREW_STATIC_ARCHIVES
 export PS5_HOST FTP_PORT DEPLOY_FORMAT PS5_FTP_USER PS5_FTP_PASSWORD DEPLOY_DRY_RUN
 export TITLE_ID APP_NAME APP_CATEGORY CONTENT_SUFFIX
@@ -59,7 +72,7 @@ RUNTIME_INPUTS := tools/rebuild-libc.sh tools/build-host-tools.sh tools/ninja-bu
 	$(wildcard tooling/native/runtime/*.txt)
 HOST_UNIT_TEST := build/tests/unit_tests
 
-.PHONY: all app build init doctor test test-deps test-unit test-integration libc deps opengl host-snapshots host-transition fonts pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
+.PHONY: all app build init doctor test test-deps test-unit test-integration test-elevation test-update-check test-self-update self-update-helper libc deps opengl host-snapshots host-transition fonts pacbrew pacbrew-list assets-check format format-check tidy lint check ffpkg ffpfsc packages deploy undeploy clean distclean help
 
 all: app
 build: app
@@ -72,7 +85,44 @@ doctor:
 	@printf '%s\n' '==> [doctor] Checking the Linux/WSL host without changing it'
 	@bash tools/doctor.sh
 
-test: test-unit test-integration
+test: test-unit test-integration test-elevation test-update-check test-self-update
+
+test-elevation:
+	@printf '%s\n' '==> [test-elevation] Running the Lapy client exchange and proof checks'
+	@bash tools/setup-native-dependencies.sh >/dev/null
+	@mkdir -p build/tests
+	@$(HOST_CXX) $(HOST_TEST_CXXFLAGS) -Isrc -idirafter .deps/native/ps5-payload-sdk/target/include \
+		tests/kits/test_elevation.cpp $(HOST_TEST_LDFLAGS) -o build/tests/test_elevation
+	@build/tests/test_elevation
+
+test-update-check:
+	@printf '%s\n' '==> [test-update-check] Running the catalog answer and version checks'
+	@mkdir -p build/tests
+	@$(HOST_CXX) $(HOST_TEST_CXXFLAGS) -g -fsanitize=address,undefined -fno-sanitize-recover=all \
+		-Isrc tests/kits/test_update_check.cpp $(HOST_TEST_LDFLAGS) -o build/tests/test_update_check
+	@build/tests/test_update_check
+
+test-self-update:
+	@printf '%s\n' '==> [test-self-update] Running the update engine against the helper'
+	@mkdir -p build/tests/self-update
+	@for name in miniz miniz_tinfl miniz_tdef miniz_zip; do \
+		$(HOST_CC) -std=c11 -O2 -w -g -fsanitize=address,undefined \
+			-c third_party/miniz/$$name.c -o build/tests/self-update/$$name.o || exit 1; \
+	done
+	@$(HOST_CXX) $(HOST_TEST_CXXFLAGS) -g -fsanitize=address,undefined -fno-sanitize-recover=all \
+		-Ithird_party -Isrc -Isrc/update \
+		tests/kits/test_self_update.cpp payloads/self-update-helper/updater.cpp \
+		payloads/self-update-helper/archive.cpp payloads/self-update-helper/files.cpp \
+		build/tests/self-update/*.o -pthread $(HOST_TEST_LDFLAGS) -o build/tests/test_self_update
+	@build/tests/test_self_update
+
+self-update-helper:
+	@printf '%s\n' '==> [self-update] Building the helper for the payload loader'
+	@bash tools/setup-native-dependencies.sh >/dev/null
+	@$(MAKE) --no-print-directory -s -C payloads/self-update-helper \
+		PS5_PAYLOAD_SDK="$(CURDIR)/.deps/native/ps5-payload-sdk" \
+		OUTPUT="$(CURDIR)/$(SELF_UPDATE_HELPER)"
+	@python3 tools/validate-loader-elf.py "$(SELF_UPDATE_HELPER)"
 
 test-deps:
 	@printf '%s\n' '==> [test-deps] Fetching the pinned host-only GoogleTest source'
@@ -123,19 +173,19 @@ $(RUNTIME): $(RUNTIME_INPUTS)
 	@printf '%s\n' '==> [libc] Generating the missing or outdated runtime'
 	@bash tools/rebuild-libc.sh
 
-app: $(RUNTIME) opengl
+app: $(RUNTIME) opengl self-update-helper
 	@printf '%s\n' '==> [app] Compiling, linking, signing, and assembling the app folder'
 	@bash tools/build.sh Folder
 
-ffpkg: $(RUNTIME) opengl
+ffpkg: $(RUNTIME) opengl self-update-helper
 	@printf '%s\n' '==> [ffpkg] Building the app folder and UFS2 image'
 	@bash tools/build.sh Ffpkg
 
-ffpfsc: $(RUNTIME) opengl
+ffpfsc: $(RUNTIME) opengl self-update-helper
 	@printf '%s\n' '==> [ffpfsc] Building the app folder and compressed image'
 	@bash tools/build.sh Ffpfsc
 
-packages: $(RUNTIME) opengl
+packages: $(RUNTIME) opengl self-update-helper
 	@printf '%s\n' '==> [packages] Building the app folder and both package formats'
 	@bash tools/build.sh All
 
@@ -199,6 +249,10 @@ help:
 	  'make test-deps       Fetch verified host-only GoogleTest source' \
 	  'make test-unit       Run host-native GoogleTest application tests' \
 	  'make test-integration  Run host tooling integration tests' \
+	  'make test-elevation    Run the Lapy client host tests' \
+	  'make test-update-check Run the update-check host tests' \
+	  'make test-self-update  Run the self-update host tests' \
+	  'make self-update-helper  Build the helper the app sends to the payload loader' \
 	  'make deps            Fetch native dependencies into .deps/' \
 	  'make pacbrew         Fetch the pinned PacBrew ports sysroot' \
 	  'make pacbrew-list    List PacBrew pkg-config module names' \
@@ -217,6 +271,7 @@ help:
 	  'Build variables:     APP_DEFINITIONS, APP_INCLUDE_PATHS, APP_STATIC_ARCHIVES, APP_IMPORT_STUBS, APP_RUNTIME_MODULES' \
 	  'OpenGL SDK:          PS5_OPENGL_PREFIX=<sdk dir with manifest.sha256> (default: pinned release)' \
 	  'PacBrew variables:   PACBREW_PACKAGES, PACBREW_INCLUDE_PATHS, PACBREW_STATIC_ARCHIVES' \
+	  'Filesystem access:   APP_LAPY_HELPER=0 leaves the Lapy helper out of the package' \
 	  'Deploy variables:    FTP_PORT=2121, DEPLOY_FORMAT=folder|ffpfsc|ffpkg, DEPLOY_DRY_RUN=0|1' \
 	  'Local defaults:      Copy .env.example to the ignored .env file' \
 	  'Build speed:         BUILD_JOBS defaults to all CPUs; USE_CCACHE=0 disables ccache' \

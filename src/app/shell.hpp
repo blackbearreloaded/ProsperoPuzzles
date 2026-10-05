@@ -10,6 +10,7 @@
 #include "core/library.hpp"
 #include "core/settings.hpp"
 #include "core/tween.hpp"
+#include "core/updater.hpp"
 #include "games/game_scene.hpp"
 #include "games/records.hpp"
 #include "gfx/draw_list.hpp"
@@ -21,6 +22,7 @@
 #include "ui/menu.hpp"
 #include "ui/settings_scene.hpp"
 #include "ui/theme.hpp"
+#include "ui/update_dialog.hpp"
 
 #include <memory>
 #include <string>
@@ -53,6 +55,24 @@ class Shell
     const Settings &settings() const
     {
         return settings_;
+    }
+    // The update check and self-update; the shell offers a newer release in
+    // the library. Not owned; nullptr leaves updates out.
+    void set_updater(Updater *updater)
+    {
+        updater_ = updater;
+    }
+    // True while the update dialog is on screen.
+    bool update_dialog_open() const
+    {
+        return update_dialog_.is_open();
+    }
+    // True once the update is staged and the app must close for it.
+    bool take_quit()
+    {
+        const bool quit = quit_;
+        quit_ = false;
+        return quit;
     }
     // Records the resolution the display actually opened with.
     void set_applied_resolution(int resolution)
@@ -130,6 +150,9 @@ class Shell
     ui::Confetti confetti_;
     ui::HowToCard howto_;
     std::uint32_t celebrations_ = 0;
+    Updater *updater_ = nullptr;
+    ui::UpdateDialog update_dialog_;
+    bool quit_ = false;
 };
 
 } // namespace ppz::app

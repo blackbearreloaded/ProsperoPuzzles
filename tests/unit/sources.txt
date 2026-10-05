@@ -9,6 +9,7 @@ src/audio/wav.cpp
 src/core/frame_stats.cpp
 src/core/input.cpp
 src/core/library.cpp
+src/core/migrate.cpp
 src/core/save_file.cpp
 src/core/settings.cpp
 src/core/version.cpp
@@ -36,5 +37,6 @@ src/games/sgt/sgt_catalog.cpp
 src/games/sgt/sgt_skin.cpp
 src/ui/library_scene.cpp
 src/ui/theme.cpp
+src/ui/update_dialog.cpp
 src/games/sgt/sgt_session.cpp
 src/third_party/sgt-puzzles/*.c

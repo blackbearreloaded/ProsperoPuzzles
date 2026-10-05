@@ -13,6 +13,7 @@
 #include "core/version.hpp"
 #include "core/frame_stats.hpp"
 #include "core/input.hpp"
+#include "core/migrate.hpp"
 #include "core/save_file.hpp"
 #include "core/settings.hpp"
 #include "gfx/draw_list.hpp"
@@ -21,7 +22,9 @@
 #include "platform/ps5/audio_out.hpp"
 #include "platform/ps5/display_egl.hpp"
 #include "platform/ps5/pad.hpp"
+#include "platform/ps5/storage.hpp"
 #include "platform/ps5/system.hpp"
+#include "platform/ps5/updater_ps5.hpp"
 #include "ui/theme.hpp"
 
 #include <GL/glcorearb.h>
@@ -37,9 +40,6 @@ extern "C" void ppz_heap_stats(std::size_t *live_bytes, std::size_t *peak_bytes,
 
 namespace
 {
-
-constexpr const char *kAssets = "/app0/assets";
-constexpr const char *kDataRoot = "/download0/prosperopuzzles";
 
 void log_heap(std::uint64_t frames)
 {
@@ -100,10 +100,10 @@ bool restart_display(ppz::ps5::Display &display, ppz::gfx::GlBatch &batch,
     return true;
 }
 
-bool load_font(const char *name, ppz::gfx::Font *font)
+bool load_font(const std::string &assets, const char *name, ppz::gfx::Font *font)
 {
     std::string data;
-    const std::string path = std::string(kAssets) + "/fonts/" + name;
+    const std::string path = assets + "/fonts/" + name;
     if (!ppz::save::read_file(path, &data) || !font->load(data))
     {
         ppz::sys::log("[PPZ] font %s failed: %s", name, font->error().c_str());
@@ -118,10 +118,26 @@ int main()
 {
     using namespace ppz;
     sys::log("[PPZ] entry");
-    sys::log("[PPZ] storage dir=%d", save::ensure_directory(kDataRoot) ? 1 : 0);
+    // Filesystem access first, while the process has one thread: it decides
+    // where the app's own files and its data are (platform/ps5/storage.hpp).
+    const ps5::Storage &where = ps5::prepare_storage();
+    const std::string assets = where.app_dir + "/assets";
+    const std::string &data_root = where.data_root;
+    const bool directory = save::ensure_directory(data_root);
+    sys::open_log(data_root.c_str());
+    sys::log("[PPZ] storage access=%d route=%s app=%s data=%s dir=%d", where.access, where.route,
+             where.app_dir.c_str(), data_root.c_str(), directory ? 1 : 0);
+    if (!where.previous_root.empty())
+    {
+        // The first start with filesystem access brings the sandbox's saves along.
+        const save::Migration moved = save::migrate(where.previous_root, data_root);
+        if (moved.ran)
+            sys::log("[PPZ] storage migrated from=%s copied=%d failed=%d",
+                     where.previous_root.c_str(), moved.copied, moved.failed);
+    }
 
     // The display opens at the saved resolution (1080p if that fails).
-    const Settings saved = app::Shell::load_settings(kDataRoot);
+    const Settings saved = app::Shell::load_settings(data_root);
     int resolution = ps5::Display::supports_display_modes() ? saved.resolution : 0;
     ps5::Display display;
     if (!open_display(display, &resolution))
@@ -132,8 +148,8 @@ int main()
     gfx::Font regular;
     gfx::Font semibold;
     gfx::GlBatch batch;
-    if (!load_font("inter-regular.ppzfont", &regular) ||
-        !load_font("inter-semibold.ppzfont", &semibold) || !batch.init())
+    if (!load_font(assets, "inter-regular.ppzfont", &regular) ||
+        !load_font(assets, "inter-semibold.ppzfont", &semibold) || !batch.init())
     {
         sys::log("[PPZ] fatal: renderer init failed");
         sys::park();
@@ -150,22 +166,26 @@ int main()
     // The playlist order is shuffled from the launch time, so it differs
     // every time the app opens.
     audio::MusicPlayer music;
-    const int tracks = music.init(mixer, std::string(kAssets) + "/audio/music",
-                                  static_cast<std::uint64_t>(sys::monotonic_us()));
+    const int tracks =
+        music.init(mixer, assets + "/audio/music", static_cast<std::uint64_t>(sys::monotonic_us()));
     sys::log("[PPZ] music songs=%d", tracks);
     ps5::AudioOut audio_out;
     audio_out.start(mixer);
     audio::SoundBank sounds;
-    const auto bank = sounds.load(std::string(kAssets) + "/audio/sfx");
+    const auto bank = sounds.load(assets + "/audio/sfx");
     sys::log("[PPZ] sounds files=%d rejected=%d", bank.files, bank.rejected);
     for (const std::string &error : bank.errors)
         sys::log("[PPZ] sound rejected %s", error.c_str());
 
-    app::Shell shell(batch, fonts, viewport.scale, kDataRoot);
+    app::Shell shell(batch, fonts, viewport.scale, data_root);
     shell.set_applied_resolution(resolution);
-    const std::string version = read_content_version("/app0/sce_sys/param.json");
+    const std::string &version = where.version;
     shell.set_version(version);
     sys::log("[PPZ] version %s", version.empty() ? "unknown" : version.c_str());
+    // Once per launch: is a newer release listed? The shell offers it.
+    ps5::ConsoleUpdater updater;
+    updater.start();
+    shell.set_updater(&updater);
 
     std::int64_t previous = sys::monotonic_us();
     std::uint64_t frames = 0;
@@ -186,8 +206,25 @@ int main()
             frames == 0 ? 1.0f / 60.0f : static_cast<float>(now - last_frame_start) / 1e6f;
         last_frame_start = now;
         const std::size_t count = pad.read(samples);
-        const InputFrame input = tracker.update(std::span<const PadSample>(samples, count),
-                                                static_cast<std::uint64_t>(now));
+        InputFrame input = tracker.update(std::span<const PadSample>(samples, count),
+                                          static_cast<std::uint64_t>(now));
+#ifdef PPZ_DEV_UPDATE_AUTO_ACCEPT
+        // Development only, for scripted console runs: the offer is accepted
+        // that many seconds after it appeared, as if Cross had been pressed.
+        {
+            static std::int64_t offered = 0;
+            if (!shell.update_dialog_open())
+                offered = 0;
+            else if (offered == 0)
+                offered = now;
+            else if (offered > 0 && now - offered > PPZ_DEV_UPDATE_AUTO_ACCEPT * 1000000LL)
+            {
+                sys::log("[PPZ] update offer accepted by the development timer");
+                input.pressed |= action_bit(Action::confirm);
+                offered = -1;
+            }
+        }
+#endif
         if (input.focus_lost)
             sys::log("[PPZ] input focus lost connected=%d", input.connected ? 1 : 0);
         if (input.pressed != 0 || input.nav != Direction::none)
@@ -214,6 +251,12 @@ int main()
                 music.duck();
         }
         music.pump(dt > 0.05f ? 0.05f : dt);
+        if (shell.take_quit())
+        {
+            // The update is staged: the helper replaces the files once the app is gone.
+            sys::log("[PPZ] closing for the update");
+            sys::exit_app();
+        }
         if (shell.take_display_mode_changed())
         {
             resolution = shell.settings().resolution;

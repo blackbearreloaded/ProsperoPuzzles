@@ -17,6 +17,18 @@ TEST(Version, ReadsContentVersion)
     EXPECT_EQ(ppz::content_version(R"({"contentVersion":"12.345.678","x":1})"), "12.345.678");
 }
 
+TEST(Version, ReadsTitleId)
+{
+    EXPECT_EQ(ppz::title_id(R"({"titleId": "PPSA99006", "contentVersion": "01.002.030"})"),
+              "PPSA99006");
+    EXPECT_EQ(ppz::title_id(R"({"titleId":"CUSA00001"})"), "CUSA00001");
+    EXPECT_EQ(ppz::title_id("{}"), "");
+    EXPECT_EQ(ppz::title_id(R"({"titleId": "ppsa99006"})"), "");
+    EXPECT_EQ(ppz::title_id(R"({"titleId": "PPSA9900"})"), "");
+    EXPECT_EQ(ppz::title_id(R"({"titleId": "PPSA9900/"})"), "");
+    EXPECT_EQ(ppz::title_id(R"({"titleId": )"), "");
+}
+
 TEST(Version, RejectsMissingOrMalformed)
 {
     EXPECT_EQ(ppz::content_version("{}"), "");

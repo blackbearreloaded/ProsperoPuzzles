@@ -15,6 +15,10 @@ namespace ppz
 // same string, so what the app shows matches the GitHub release.
 std::string content_version(std::string_view param_json);
 
+// The "titleId" value (four capital letters and five digits, e.g. "PPSA99006")
+// from param.json text, or "" when it is missing or malformed.
+std::string title_id(std::string_view param_json);
+
 // Reads param.json from path; "" when it cannot be read.
 std::string read_content_version(const std::string &path);
 

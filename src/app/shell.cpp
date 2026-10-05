@@ -277,6 +277,31 @@ void Shell::update(const InputFrame &input, float dt)
     case Stage::library:
     {
         thumbnails_.pump(2);
+        if (update_dialog_.is_open())
+        {
+            // The update dialog owns input; the library keeps animating beneath.
+            const ui::UpdateDialog::Result result = update_dialog_.update(input, dt, cues_);
+            library_scene_.update(InputFrame{}, dt, cues_);
+            details_.update(InputFrame{}, dt, cues_);
+            if (result == ui::UpdateDialog::Result::staged)
+                confetti_.burst(ui::theme::kTriangle, 0x2545f491u * ++celebrations_,
+                                settings_.reduced_motion);
+            else if (result == ui::UpdateDialog::Result::quit)
+                quit_ = true;
+            break;
+        }
+        update_dialog_.update(InputFrame{}, dt, cues_);
+        UpdateOffer offer;
+        if (updater_ != nullptr && !howto_.is_open() && !details_.is_open() &&
+            updater_->take(&offer))
+        {
+            sys::log("[PPZ] update offered version=%s installable=%d", offer.version.c_str(),
+                     offer.installable ? 1 : 0);
+            update_dialog_.open(*updater_, offer, settings_.reduced_motion);
+            cues_.push_back(audio::Cue::ui_notify);
+            library_scene_.update(InputFrame{}, dt, cues_);
+            break;
+        }
         if (howto_.is_open())
         {
             howto_.update(input, dt, cues_);
@@ -425,6 +450,7 @@ void Shell::draw(gfx::DrawList &list) const
     case Stage::library:
         library_scene_.draw(list, fonts_);
         details_.draw(list, fonts_);
+        update_dialog_.draw(list, fonts_);
         break;
     case Stage::settings:
         list.push_opacity(transition_.running ? p : 1.0f);

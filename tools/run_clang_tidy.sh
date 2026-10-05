@@ -23,8 +23,16 @@ mapfile -d '' host_sources < <(find "$root/tooling/native" -maxdepth 1 \
 "$tidy" "${host_sources[@]}" --quiet --warnings-as-errors='*' -- \
     -std=c++20 -I"$zlib"
 
+# The update kits include each other's headers by name, and vendored code by folder.
+kit_includes=(-I"$root/src/update" -isystem "$root/third_party")
+
 gtest=$(bash "$root/tools/setup-test-dependencies.sh")
-mapfile -d '' test_sources < <(find "$root/tests" -type f -name '*.cpp' -print0)
+mapfile -d '' kit_test_sources < <(find "$root/tests/kits" -type f -name '*.cpp' -print0)
+if (( ${#kit_test_sources[@]} )); then
+    "$tidy" "${kit_test_sources[@]}" --quiet --warnings-as-errors='*' -- \
+        -std=c++20 -I"$root/src" "${kit_includes[@]}" -idirafter "$sdk/target/include"
+fi
+mapfile -d '' test_sources < <(find "$root/tests/unit" -type f -name '*.cpp' -print0)
 if (( ${#test_sources[@]} )); then
     "$tidy" "${test_sources[@]}" --quiet --warnings-as-errors='*' -- \
         -std=c++20 -DCOMBINED -I"$root/src" -I"$root/tests" \
@@ -38,18 +46,25 @@ opengl="$root/.deps/ps5-opengl/current/include"
 # Vendored upstream code under src/third_party is excluded from the analyzer profile.
 mapfile -d '' app_c_sources < <(find "$root/src" -path "$root/src/third_party" -prune \
     -o -type f -name '*.c' -print0)
+# The update kits use libcurl's headers from the pinned PacBrew prefix.
+pacbrew_include="$(bash "$root/tools/setup-pacbrew-dependencies.sh" --all)/user/homebrew/include"
 if (( ${#app_c_sources[@]} )); then
     "$tidy" "${app_c_sources[@]}" --quiet --warnings-as-errors='*' -- \
-        -std=c11 -isystem "$sdk/target/include"
+        -std=c11 --target=x86_64-sie-ps5 "${kit_includes[@]}" \
+        -isystem "$sdk/target/include" -isystem "$pacbrew_include"
 fi
 
 mapfile -d '' app_cpp_sources < <(find "$root/src" -path "$root/src/third_party" -prune \
     -o -type f \( -name '*.cc' -o -name '*.cpp' \) -print0)
 app_cpp_sources+=("$root/tooling/native/app_crt.cpp" "$root/tooling/native/app_cpp_runtime.cpp")
+# The self-update helper is a payload, built with the same compiler family.
+mapfile -d '' payload_sources < <(find "$root/payloads" -type f -name '*.cpp' -print0)
+app_cpp_sources+=("${payload_sources[@]}")
 if (( ${#app_cpp_sources[@]} )); then
     "$tidy" "${app_cpp_sources[@]}" --quiet --warnings-as-errors='*' -- \
         -std=c++20 -fno-exceptions -fno-rtti --target=x86_64-sie-ps5 \
         -DGL_GLEXT_PROTOTYPES=1 -DCOMBINED -I"$root/src" \
-        -I"$root/src/third_party/sgt-puzzles" -isystem "$opengl" \
-        -isystem "$sdk/target/include/c++/v1" -isystem "$sdk/target/include"
+        -I"$root/src/third_party/sgt-puzzles" "${kit_includes[@]}" -isystem "$opengl" \
+        -isystem "$sdk/target/include/c++/v1" -isystem "$sdk/target/include" \
+        -isystem "$pacbrew_include"
 fi

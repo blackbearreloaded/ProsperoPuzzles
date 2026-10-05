@@ -44,4 +44,14 @@ void park()
     std::exit(1);
 }
 
+void open_log(const char *directory)
+{
+    (void)directory;
+}
+
+void exit_app()
+{
+    std::exit(0);
+}
+
 } // namespace ppz::sys

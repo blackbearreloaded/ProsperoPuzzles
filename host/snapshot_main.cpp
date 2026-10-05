@@ -30,6 +30,7 @@
 #include "ui/about_scene.hpp"
 #include "ui/settings_scene.hpp"
 #include "ui/theme.hpp"
+#include "ui/update_dialog.hpp"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -71,6 +72,37 @@ bool open_context()
     return context != EGL_NO_CONTEXT &&
            eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);
 }
+
+// An updater that answers what a snapshot needs.
+class ScriptedUpdater final : public ppz::Updater
+{
+  public:
+    ppz::UpdateProgress progress;
+    bool begins = true;
+
+    bool take(ppz::UpdateOffer *) override
+    {
+        return false;
+    }
+    bool begin() override
+    {
+        return begins;
+    }
+    ppz::UpdateProgress poll() override
+    {
+        return progress;
+    }
+    void cancel() override
+    {
+    }
+    bool apply() override
+    {
+        return true;
+    }
+    void finish() override
+    {
+    }
+};
 
 bool load_font(const std::string &path, ppz::gfx::Font *font)
 {
@@ -224,6 +256,51 @@ int main(int argc, char **argv)
         list.clear();
         ppz::ui::AboutScene().draw(list, fonts, "01.001.000");
         ok = write("about") && ok;
+    }
+
+    {
+        // The update dialog over the library: the offer, the download, the
+        // unpacking, the close, a failure, and a copy that can't update itself.
+        ppz::InputFrame confirm;
+        confirm.pressed = ppz::action_bit(ppz::Action::confirm);
+        const ppz::UpdateOffer offer{true, "01.000.020", "01.000.020", 39167016};
+        const auto shot = [&](ppz::ui::UpdateDialog &dialog, int frames, const char *name)
+        {
+            for (int frame = 0; frame < frames; ++frame)
+                dialog.update(idle, 1.0f / 60.0f, cues);
+            list.clear();
+            scene.draw(list, fonts);
+            dialog.draw(list, fonts);
+            return write(name);
+        };
+        ScriptedUpdater updater;
+        ppz::ui::UpdateDialog dialog;
+        dialog.open(updater, offer, false);
+        ok = shot(dialog, 18, "update-offer-rising") && ok;
+        ok = shot(dialog, 72, "update-offer") && ok;
+        dialog.update(confirm, 1.0f / 60.0f, cues);
+        updater.progress.phase = ppz::UpdatePhase::starting;
+        ok = shot(dialog, 40, "update-preparing") && ok;
+        updater.progress = {
+            ppz::UpdatePhase::downloading, 24641536, 39167016, "about 6 s left", {}};
+        ok = shot(dialog, 90, "update-downloading") && ok;
+        updater.progress = {ppz::UpdatePhase::unpacking, 31457280, 52428800, {}, {}};
+        ok = shot(dialog, 90, "update-unpacking") && ok;
+        updater.progress.phase = ppz::UpdatePhase::ready;
+        ok = shot(dialog, 50, "update-closing") && ok;
+
+        ScriptedUpdater broken;
+        ppz::ui::UpdateDialog failed;
+        failed.open(broken, offer, false);
+        failed.update(confirm, 1.0f / 60.0f, cues);
+        broken.progress.phase = ppz::UpdatePhase::failed;
+        broken.progress.error = "The update helper couldn't be started. Is the payload loader "
+                                "running?";
+        ok = shot(failed, 60, "update-failed") && ok;
+
+        ppz::ui::UpdateDialog notice;
+        notice.open(updater, {false, "01.000.020", "01.000.020", 0}, false);
+        ok = shot(notice, 90, "update-notice") && ok;
     }
 
     for (int step = 0; step < 4; ++step)

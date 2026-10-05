@@ -18,7 +18,8 @@ sources=("$root/host/transition_main.cpp" "$root/src/app/shell.cpp" "$root/host/
     "$root/src/games/sgt/sgt_canvas.cpp" "$root/src/games/sgt/sgt_skin.cpp" "$root/src/games/sgt/sgt_scene.cpp"
     "$root/src/gfx/canvas.cpp" "$root/src/gfx/triangulate.cpp" "$root/src/ui/menu.cpp"
     "$root/src/games/g2048/g2048_scene.cpp" "$root/src/games/tenfold/tenfold_scene.cpp"
-    "$root/src/ui/theme.cpp" "$root/src/ui/gallery.cpp" "$root/src/ui/confetti.cpp" "$root/src/ui/howto_card.cpp" "$root/src/ui/library_scene.cpp")
+    "$root/src/ui/theme.cpp" "$root/src/ui/gallery.cpp" "$root/src/ui/confetti.cpp" "$root/src/ui/howto_card.cpp" "$root/src/ui/library_scene.cpp"
+    "$root/src/ui/update_dialog.cpp")
 # Native puzzles: the kit and every game directory built on it.
 for source in "$root"/src/games/kit/*.cpp "$root"/src/games/{crowns,linkup,trail,kakuro,nurikabe,trafficjam,colorsort,sokoban}/*.cpp; do
     [[ -e $source ]] && sources+=("$source")

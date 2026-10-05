@@ -23,6 +23,12 @@ for command in python3 sha256sum; do
 done
 bash "$root/tools/setup-native-dependencies.sh" >/dev/null
 
+app_lapy_helper=${APP_LAPY_HELPER:-0}
+[[ $app_lapy_helper == 0 || $app_lapy_helper == 1 ]] || {
+    echo "APP_LAPY_HELPER must be 0 or 1" >&2
+    exit 2
+}
+
 param="$root/sce_sys/param.json"
 title_id=$(python3 - "$param" <<'PY'
 import json, re, sys
@@ -215,6 +221,14 @@ if [[ -f $root/src/runtime/app_heap.c ]]; then
         wrap_options+=("--wrap=$symbol")
     done
 fi
+# Link-time wrappers: each symbol S resolves to the app's __wrap_S, and
+# __real_S to the original (for example fcntl, which libcurl needs wrapped).
+for symbol in ${APP_WRAP_SYMBOLS:-}; do
+    [[ $symbol =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+        echo "invalid wrap symbol: $symbol" >&2; exit 2;
+    }
+    wrap_options+=("--wrap=$symbol")
+done
 ninja_inputs=("$native/ps5-pie.ld" "$native/app-symbols.map" "$sdk_root/bin/prospero-lld")
 for input in "${link_inputs[@]}" "${stub_paths[@]}" "$sdk_root"/target/lib/*.so; do
     [[ $input == -* ]] || ninja_inputs+=("$input")
@@ -253,6 +267,33 @@ for dir in "$app/assets/audio/music" "$app/assets/audio/sfx"; do
     [[ -d $dir ]] || continue
     (cd "$dir" && find . -maxdepth 1 -type f ! -name index.txt -printf '%f\n' | LC_ALL=C sort > index.txt)
 done
+
+root_files=()
+[[ -z ${APP_ROOT_FILES:-} ]] || read -r -a root_files <<< "$APP_ROOT_FILES"
+for source in "${root_files[@]}"; do
+    [[ $source =~ ^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$ && -f $root/$source ]] || {
+        echo "invalid application root file: $source" >&2
+        exit 2
+    }
+    cp "$root/$source" "$app/${source##*/}"
+done
+
+if [[ $app_lapy_helper == 1 ]]; then
+    helper="$build/lapy-helper/$title_id"
+    python3 "$root/tools/build-lapy-helper.py" "$title_id" "$helper"
+    cp "$helper/lapy.elf" "$app/lapy.elf"
+    cp "$helper/lapy-manifest.json" "$app/lapy-manifest.json"
+    mkdir -p "$app/licenses"
+    cp "$helper/Lapy-MIT.txt" "$app/licenses/Lapy-MIT.txt"
+    python3 - "$app" <<'PY'
+import hashlib, json, pathlib, sys
+app = pathlib.Path(sys.argv[1])
+manifest = json.loads((app / "lapy-manifest.json").read_text())
+actual = hashlib.sha256((app / "lapy.elf").read_bytes()).hexdigest()
+assert manifest["elf_sha256"] == actual
+assert manifest["target_title"] == app.name and manifest["mode"] == "elf-helper"
+PY
+fi
 
 [[ -f $root/runtime/libc.prx ]] || bash "$root/tools/rebuild-libc.sh"
 (cd "$root/runtime" && sha256sum --check --strict libc.prx.sha256)
