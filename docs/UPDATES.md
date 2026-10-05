@@ -119,3 +119,55 @@ make host-snapshots      # build/snapshots/update-*.png: every state of the dial
 `PPZ_UPDATE_FILM=1 bash tools/host-snapshots.sh <folder> 1280 720` writes the
 whole update as 60 FPS frames (`film-NNNN.png`), for a video of the dialog.
 
+## Console validation
+
+Run on two PS5 consoles on 2026-10-05 (one on firmware 12.70), with the app
+installed as a folder under `/data/homebrew` and registered by ShadowMountPlus.
+Three builds of this source were used: A at content version `01.000.010` with
+`PPZ_DEV_UPDATE_OFFER` and `PPZ_DEV_UPDATE_AUTO_ACCEPT=8`, B at `01.000.020`
+(a 42.3 MB ZIP attached to a pre-release of a temporary repository, since
+deleted), and C at `01.000.000` with only the auto-accept timer.
+
+| Checked | Console 1 (12.70) | Console 2 |
+| --- | --- | --- |
+| Filesystem access through the packaged one-shot helper | Granted (`route=helper`) | Granted (`route=helper`) |
+| The app's folder once elevated | `/system_ex/app/PPSA99006` | `/system_ex/app/PPSA99006` |
+| Data in `/data/prosperopuzzles`, log included | Yes | Yes |
+| Saves brought over from the sandbox | 6 files copied, none failed | Nothing to bring (the folder already held its saves, kept) |
+| A to B: download from GitHub, staging, the app closing itself, the replacement | Passed | Passed |
+| Every installed file after the update | 68 of 68 match build B | 68 of 68 match build B |
+| Work folder removed; an unlisted file in the app's folder kept | Yes | Yes |
+| B started again | Reports `01.000.020`, check answers up to date | The same |
+| C to the public release through the **signed catalog** | Passed: `01.000.000` to `01.000.010` | Not run |
+| Without the Lapy helper in the folder | Sandbox paths (`access=5`), the app runs and the check answers | Not run |
+| Kernel log | No crash, core dump or panic line | The same |
+
+What build A logged on console 1, and the helper's lines in the kernel log:
+
+```text
+[PPZ] storage access=0 route=helper app=/system_ex/app/PPSA99006 data=/data/prosperopuzzles dir=1
+[PPZ] storage migrated from=/mnt/sandbox/PPSA99006_000/download0/prosperopuzzles copied=6 failed=0
+[PPZ] update check result=available installed=01.000.010 available=01.000.020 version=01.000.020 size=42280819 ms=262
+[PPZ] update offered version=01.000.020 installable=1
+[PPZ] update begun to 01.000.020
+[PPZ] update phase=downloading done=0 total=42280819
+[PPZ] update phase=unpacking done=0 total=0
+[PPZ] update phase=ready done=73787390 total=73787390
+[PPZ] update staged: the helper replaces the files once the app closed
+[PPZ] closing for the update
+[self-update] installed folder (ShadowMountPlus): /data/homebrew/PPSA99006
+[self-update] update PPSA99006 01.000.010 -> 01.000.020 in /data/homebrew/PPSA99006
+[self-update] updated PPSA99006 to 01.000.020
+```
+
+### What those runs did not cover
+
+- **The buttons.** The offer was accepted by the build's timer; *Later*,
+  *Cancel*, *Try again* and the dialog's drawing are covered by the unit tests
+  and the host snapshots, which use the console's drawing code.
+- **Failure paths on a console**: no payload loader, a download that doesn't
+  match, an image install, a full drive (host tests only).
+- **A resident Lapy service** (`route=resident`), an app on an external or USB
+  drive, and power loss during the replacement.
+- **The notification** was posted by the helper; that it appeared on screen
+  was not recorded.
