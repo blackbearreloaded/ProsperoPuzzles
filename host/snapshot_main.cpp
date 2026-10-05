@@ -258,6 +258,63 @@ int main(int argc, char **argv)
         ok = write("about") && ok;
     }
 
+    // The whole update as 60 FPS frames (PPZ_UPDATE_FILM=1), for a video of the dialog.
+    if (std::getenv("PPZ_UPDATE_FILM") != nullptr)
+    {
+        ppz::InputFrame confirm;
+        confirm.pressed = ppz::action_bit(ppz::Action::confirm);
+        const std::uint64_t size = 39167016;
+        ScriptedUpdater updater;
+        ppz::ui::UpdateDialog dialog;
+        ppz::ui::Confetti confetti;
+        int frame_number = 0;
+        const auto film = [&](int frames, const ppz::InputFrame &first)
+        {
+            for (int frame = 0; frame < frames && ok; ++frame)
+            {
+                const auto result = dialog.update(frame == 0 ? first : idle, 1.0f / 60.0f, cues);
+                if (result == ppz::ui::UpdateDialog::Result::staged)
+                    confetti.burst(ppz::ui::theme::kTriangle, 7);
+                scene.update(idle, 1.0f / 60.0f, cues);
+                confetti.update(1.0f / 60.0f);
+                list.clear();
+                scene.draw(list, fonts);
+                dialog.draw(list, fonts);
+                confetti.draw(list);
+                char name[32];
+                std::snprintf(name, sizeof(name), "film-%04d", frame_number++);
+                ok = write(name);
+            }
+        };
+        film(40, idle);
+        dialog.open(updater, {true, "01.000.020", "01.000.020", size}, false);
+        film(170, idle);
+        updater.progress.phase = ppz::UpdatePhase::starting;
+        film(70, confirm);
+        for (int step = 0; step <= 60; ++step)
+        {
+            // Four seconds of download at a steady speed.
+            const std::uint64_t done = size * static_cast<std::uint64_t>(step) / 60;
+            char left[32] = "";
+            if (step > 12 && step < 60)
+                std::snprintf(left, sizeof(left), "about %d s left", (60 - step + 14) / 15);
+            updater.progress = {ppz::UpdatePhase::downloading, done, size, left, {}};
+            film(4, idle);
+        }
+        for (int step = 0; step <= 20; ++step)
+        {
+            updater.progress = {ppz::UpdatePhase::unpacking,
+                                65685488ull * static_cast<std::uint64_t>(step) / 20,
+                                65685488ull,
+                                {},
+                                {}};
+            film(4, idle);
+        }
+        updater.progress.phase = ppz::UpdatePhase::ready;
+        film(175, idle);
+        return ok ? 0 : 1;
+    }
+
     {
         // The update dialog over the library: the offer, the download, the
         // unpacking, the close, a failure, and a copy that can't update itself.

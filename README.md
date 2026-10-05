@@ -77,7 +77,7 @@ Demo available by clicking the image below.
 | Category | Game |
 | Current version | `01.000.010` |
 | Version source | [`sce_sys/param.json`](sce_sys/param.json) |
-| Writable data | `/download0` only |
+| Writable data | `/data/prosperopuzzles` (`/download0` without filesystem access) |
 
 ## Games
 
@@ -86,6 +86,24 @@ Demo available by clicking the image below.
 | Simon Tatham's puzzles | Black Box, Bridges, Cube, Dominosa, Fifteen, Filling, Flip, Flood, Galaxies, Guess, Inertia, Keen, Light Up, Loopy, Magnets, Map, Mines, Mosaic, Net, Netslide, Palisade, Pattern, Pearl, Pegs, Range, Rectangles, Same Game, Signpost, Singles, Sixteen, Slant, Solo, Tents, Towers, Tracks, Twiddle, Undead, Unequal, Unruly, Untangle |
 | Native puzzles | Color Sort, Crowns, Kakuro, Link Up, Nurikabe, Sokoban, Traffic Jam, Trail |
 | Number games | 2048, Tenfold |
+
+## Updates, saves and filesystem access
+
+- **The app updates itself.** Once per launch it asks the
+  [homebrew.page](https://homebrew.page/app/PPSA99006/) catalog whether a newer
+  release is listed, and offers it: *Update now* downloads the release, checks
+  it, and replaces the app's files once the app has closed. Nothing changes
+  before you say yes, and a failure or a cancel leaves the app as it was. See
+  [Updates](docs/UPDATES.md).
+- **Saves live in `/data/prosperopuzzles`**: settings, favorites, games in
+  progress, records and the log. They outlast the app and can be backed up over
+  FTP. Saves of earlier versions are brought over at the first start.
+- **Lapy elevation included.** The package carries an exact-title one-shot
+  helper built from upstream
+  [PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon) and
+  sends it to the local payload loader on port 9021; loading Lapy separately
+  is not needed. Without a loader the app still runs, with its data in the
+  sandbox. See [Storage and filesystem access](docs/STORAGE.md).
 
 ## Current status
 
@@ -174,9 +192,13 @@ keep the same version only build and test.
 5. Launch ProsperoPuzzles and confirm the version in the library header or at
    the bottom of Settings.
 
-Keeping the title ID as `PPSA99006` preserves saved games, records and settings
-in `/download0`; `/app0` comes from the replacement, while the home-screen
-artwork and selection music may stay cached until ShadowMountPlus restarts.
+From the next release on, an installed folder copy offers new versions by
+itself ([Updates](docs/UPDATES.md)); the steps above stay valid, and are the
+way to update an image install.
+
+Saved games, records and settings are in `/data/prosperopuzzles` and are not
+touched by an update or a reinstall. The home-screen artwork and selection
+music may stay cached until ShadowMountPlus restarts.
 
 ## Deploy
 
@@ -275,6 +297,8 @@ See [Configuration](docs/CONFIGURATION.md).
 | [Architecture](docs/ARCHITECTURE.md) | Shell, games, rendering and audio flow |
 | [Configuration](docs/CONFIGURATION.md) | Identity, versioning and build variables |
 | [OpenGL integration](docs/OPENGL_INTEGRATION.md) | SDK selection and rendering rules |
+| [Storage and filesystem access](docs/STORAGE.md) | Where saves live, Lapy elevation, migration |
+| [Updates](docs/UPDATES.md) | The update check, the self-update and how it was validated |
 | [Testing](docs/TESTING.md) | Host test boundaries and commands |
 | [Deployment](docs/DEPLOYMENT.md) | Safe folder and image staging |
 | [Package formats](docs/FFPKG.md) | Folder, `.ffpkg` and `.ffpfsc` outputs |

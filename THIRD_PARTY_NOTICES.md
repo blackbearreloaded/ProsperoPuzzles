@@ -14,6 +14,14 @@ ProsperoPuzzles exists thanks to the maintainers and contributors of:
 - [Inter](https://github.com/rsms/inter) (SIL Open Font License) for the
   interface font, and [stb](https://github.com/nothings/stb) for music decoding
   and font baking;
+- [PS5-Lapy-JB-Daemon](https://github.com/ArkSama/PS5-Lapy-JB-Daemon) by
+  ArkSama / Team PHU, and
+  [mpereiraesaa's fork](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon) with
+  the exact-title one-shot helper and cooperative protocol, for filesystem
+  access;
+- [curl](https://curl.se/), [OpenSSL](https://www.openssl.org/) and
+  [miniz](https://github.com/richgel999/miniz) for the update check and the
+  self-update;
 - [MkPFS](https://github.com/PSBrew/MkPFS),
   [UFS2Tool](https://github.com/SvenGDK/UFS2Tool), LLVM/Clang, Python, zlib and
   GoogleTest for build, packaging and validation tooling.
@@ -102,15 +110,61 @@ SHA-256 `65fab701d9829d38cb77c14acdc431d2108bfdbf8979e40eb8ae567edf10b27c`.
 It remains under ignored `.deps/test/`, retains its BSD-3-Clause license, and
 is not linked into any PS5 application, runtime, or package artifact.
 
-## Optional PacBrew dependencies
+## PS5-Lapy-JB-Daemon helper
 
-When selected through `PACBREW_*` build variables, the build downloads the prebuilt ports image
+The build fetches
+[mpereiraesaa's PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon)
+at commit `54a095c0f19161825e845daa760a03b446e654fa`, invokes its unmodified
+`owned-helper` target for title `PPSA99006` and packages the generated helper
+(`lapy.elf`, `lapy-manifest.json`) with Lapy's MIT license
+(`licenses/Lapy-MIT.txt`). The shared protocol header published upstream is
+LGPL-2.1-or-later; the application-side client in `src/platform/ps5/` is the
+PS5 Native App Boilerplate's, GPL-3.0-or-later.
+
+Lapy was created by
+[ArkSama / Team PHU](https://github.com/ArkSama/PS5-Lapy-JB-Daemon). Credit
+belongs to ArkSama, mpereiraesaa and the Lapy contributors. No Lapy kernel
+source is copied or modified here.
+
+The helper build also uses the pinned `ps5log/1` header from
+[mpereiraesaa/ps5-agc-gears](https://github.com/mpereiraesaa/ps5-agc-gears/tree/1ae1f9182abd2770c131b97419034fb85173c2dc/native/ps5log),
+GPL-3.0-or-later, and the official PS5 Payload SDK v0.40. Those build inputs
+remain under ignored `.deps/lapy/`; the application toolchain remains the
+separately pinned Payload SDK v0.42.
+
+## Update check and self-update
+
+`src/update/` and `payloads/self-update-helper/` are the PS5 Native App
+Boilerplate's update-check and self-update kits (GPL-3.0-or-later, original
+BlackBearReloaded code from the ProsperoRadio, ProsperoLichess and
+ProsperoStore projects); the helper carries ProsperoEden's additions. The
+`gmtime_r` in `console_curl.c` follows Howard Hinnant's public-domain
+`civil_from_days` algorithm.
+
+The application statically links these libraries from the PacBrew prebuilt
+ports (below), for HTTPS and the catalog's Ed25519 signature:
+
+| Component | Version in PacBrew v0.40.2 | License |
+| --- | --- | --- |
+| [libcurl](https://curl.se/) | 8.18.0 | curl license (MIT/X derivative) |
+| [OpenSSL](https://www.openssl.org/) | 3.5.2 | Apache License 2.0 |
+| [zlib](https://zlib.net/) | 1.3.2 | zlib license |
+| [zstd](https://github.com/facebook/zstd) | 1.5.6 | BSD-3-Clause (dual-licensed with GPL-2.0) |
+| [libpsl](https://github.com/rockdaboot/libpsl) | 0.21.5 | MIT; built-in Public Suffix List data MPL-2.0 |
+
+`third_party/miniz/` holds [miniz](https://github.com/richgel999/miniz) 3.0.2
+(commit `293d4db1b7d0ffee9756d035b9ac6f7431ef8492`), MIT, unmodified, with its
+`LICENSE`; `SOURCE.json` records each file's SHA-256. Only the self-update
+helper (`self-updater.elf` in the package) and its host test link it.
+
+## PacBrew dependencies
+
+The build downloads the prebuilt ports image
 from [ps5-payload-dev/pacbrew-repo](https://github.com/ps5-payload-dev/pacbrew-repo)
 release `v0.40.2`, verifies its published SHA-256, and extracts only the
 `target/user/homebrew` prefix under ignored `.deps/pacbrew/`. It does not
 replace the pinned SDK or install files globally. PacBrew recipes and every
-linked third-party library retain their upstream licenses; applications must
-review those terms before redistribution.
+linked third-party library retain their upstream licenses.
 
 ## Optional UFS2Tool dependency
 

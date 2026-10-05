@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- The app updates itself: it asks the homebrew.page catalog for a newer
+  release once per launch, offers it in the library, downloads and checks it,
+  and replaces its own files after closing. An animated dialog shows the offer,
+  the progress and the result.
+- Settings, favorites, saved games, records and the log are kept in
+  `/data/prosperopuzzles`. Saves of earlier versions are copied over at the
+  first start.
+- Filesystem access through upstream Lapy: the package carries an exact-title
+  one-shot helper and sends it to the local payload loader, so Lapy does not
+  have to be loaded separately. Without a loader the app keeps its sandbox
+  folder.
+
 ## 01.000.010
 
 - Builds on ps5-opengl SDK 1.0.0, which passes the Khronos OpenGL 4.6

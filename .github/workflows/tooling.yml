@@ -55,7 +55,8 @@ jobs:
             .deps/pacbrew
             .deps/MkPFS
             .deps/ps5-opengl
-          key: deps-${{ runner.os }}-${{ runner.arch }}-ubuntu24-python313-${{ hashFiles('tools/setup-*-dependencies.sh', 'tools/fetch-opengl-sdk.sh') }}
+            .deps/lapy
+          key: deps-${{ runner.os }}-${{ runner.arch }}-ubuntu24-python313-${{ hashFiles('tools/setup-*-dependencies.sh', 'tools/fetch-opengl-sdk.sh', 'tools/build-lapy-helper.py') }}
 
       - name: Restore compiler cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -106,6 +107,9 @@ jobs:
 
       - name: Run host integration tests
         run: make test-integration
+
+      - name: Run elevation, update-check and self-update tests
+        run: make test-elevation test-update-check test-self-update
 
       - name: Reproduce clean-room runtime shim
         run: make libc
