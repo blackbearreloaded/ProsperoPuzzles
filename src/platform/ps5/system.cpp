@@ -75,6 +75,12 @@ void open_log(const char *directory)
     early_used = 0;
 }
 
+void flush_log()
+{
+    std::fflush(stdout);
+    std::fflush(stderr);
+}
+
 bool hide_splash_screen()
 {
     return sceSystemServiceHideSplashScreen() == 0;

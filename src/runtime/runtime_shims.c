@@ -15,6 +15,9 @@
 
 extern int sceKernelUsleep(uint32_t microseconds);
 
+static char ppz_log_buffer[1024u * 1024u];
+static char ppz_error_buffer[64u * 1024u];
+
 /* The app log receipt, in the app's data folder. main opens it once filesystem
  * access has decided where that is (platform/ps5/storage.hpp). */
 void ppz_open_log(const char *directory)
@@ -30,15 +33,16 @@ void ppz_open_log(const char *directory)
     /* Keep the previous launch's log for post-close inspection. */
     rename(path, previous);
     FILE *stream = freopen(path, "w", stdout);
-    /* Start a fresh receipt, then make both streams append-only and unbuffered
-     * so the log survives a shell close or a GPU fail-stop. */
+    /* Start a fresh receipt, then keep stdout buffered: ps5-opengl telemetry is
+     * chatty and synchronous writes to /data can stall rendering and audio.
+     * sys::flush_log() writes it out at the moments that matter. */
     if (stream != NULL)
         stream = freopen(path, "a", stdout);
     if (stream != NULL)
-        setvbuf(stream, NULL, _IONBF, 0);
+        setvbuf(stream, ppz_log_buffer, _IOFBF, sizeof(ppz_log_buffer));
     stream = freopen(path, "a", stderr);
     if (stream != NULL)
-        setvbuf(stream, NULL, _IONBF, 0);
+        setvbuf(stream, ppz_error_buffer, _IOFBF, sizeof(ppz_error_buffer));
 }
 
 /* Returning from main or calling exit() crashes a native title; stay alive

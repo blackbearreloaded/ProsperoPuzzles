@@ -10,6 +10,7 @@
 #include "update/ppz_paths.h"
 
 #include <sys/stat.h>
+#include <unistd.h>
 
 namespace ppz::ps5
 {
@@ -68,6 +69,10 @@ const Storage &prepare_storage()
     }
     settled.access = static_cast<int>(elevation::request(elevation::Capability::filesystem));
     settled.route = elevation::path();
+    // Elevation leaves the effective group apart from the real one; match
+    // them, as files made from here on should belong to one group.
+    if (settled.granted() && getegid() != getgid())
+        (void)setegid(getgid());
     settled.app_dir = kSandboxApp;
     settled.data_root = kSandboxData;
     if (settled.granted() && !settled.title_id.empty())

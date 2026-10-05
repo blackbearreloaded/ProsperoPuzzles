@@ -27,6 +27,7 @@ class MusicTrack
 
     // Takes the whole file; returns an error, or "" on success. 48 kHz only.
     std::string open(std::string data);
+    std::string open(std::shared_ptr<const std::string> data);
     void set_looping(bool looping)
     {
         looping_ = looping;
@@ -45,7 +46,7 @@ class MusicTrack
     }
 
   private:
-    std::string data_;
+    std::shared_ptr<const std::string> data_;
     stb_vorbis *vorbis_ = nullptr;
     int channels_ = 0;
     bool looping_ = true;
@@ -94,8 +95,8 @@ class MusicPlayer
     void apply_gain(float seconds);
 
     Mixer *mixer_ = nullptr;
-    std::string directory_;
     std::vector<std::string> playlist_;
+    std::vector<std::shared_ptr<const std::string>> songs_;
     std::size_t next_ = 0; // index in playlist_ of the song after this one
     StreamRing ring_{1u << 16};
     std::unique_ptr<MusicTrack> track_;

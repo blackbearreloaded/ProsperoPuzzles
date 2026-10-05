@@ -20,6 +20,10 @@ void log(const char *format, ...) __attribute__((format(printf, 1, 2)));
 // and sends stdout and stderr there. Lines logged before it are written first.
 void open_log(const char *directory);
 
+// Writes the buffered log out. The log is buffered because a write to /data
+// on the frame's thread can stall it; call this where a stall does not show.
+void flush_log();
+
 // Hides the system splash screen. Call once the first frame has been presented.
 bool hide_splash_screen();
 

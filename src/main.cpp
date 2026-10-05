@@ -311,6 +311,8 @@ int main()
             const bool hidden = sys::hide_splash_screen();
             sys::log("[PPZ] ready splash_hidden=%d", hidden ? 1 : 0);
             log_heap(frames);
+            // The start-up lines reach the file now, while nothing animates yet.
+            sys::flush_log();
         }
         else
         {

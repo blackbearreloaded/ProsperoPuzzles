@@ -49,6 +49,10 @@ void open_log(const char *directory)
     (void)directory;
 }
 
+void flush_log()
+{
+}
+
 void exit_app()
 {
     std::exit(0);
