@@ -154,7 +154,12 @@ int MusicPlayer::init(Mixer &mixer, const std::string &directory, std::uint64_t 
     mixer.set_stream_gain(0, kBaseGain, 0.0f);
     mixer.set_stream_gain(1, 0.0f, 0.0f);
 
-    for (const std::string &name : save::list_files(directory))
+    // A fresh order every launch: sort first so the seed alone decides it.
+    // The names are sorted before the files are read, so that each song's
+    // data stays at its name's place whatever order the folder lists them in.
+    std::vector<std::string> names = save::list_files(directory);
+    std::sort(names.begin(), names.end());
+    for (const std::string &name : names)
     {
         if (name.size() > 4 && name.compare(name.size() - 4, 4, ".ogg") == 0 &&
             playlist_.size() < kMaxSongs)
@@ -167,8 +172,6 @@ int MusicPlayer::init(Mixer &mixer, const std::string &directory, std::uint64_t 
             }
         }
     }
-    // A fresh order every launch: sort first so the seed alone decides it.
-    std::sort(playlist_.begin(), playlist_.end());
     std::uint64_t state = seed;
     for (std::size_t i = playlist_.size(); i > 1; --i)
     {
