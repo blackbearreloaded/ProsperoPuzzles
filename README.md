@@ -182,7 +182,10 @@ locally.
 ## Install or update
 
 1. Download `PPSA99006.zip` from the latest GitHub release and verify it with
-   `SHA256SUMS`.
+   `SHA256SUMS`. A release ZIP built by GitHub Actions can
+   be checked with the GitHub CLI:
+   `gh attestation verify PPSA99006.zip -R blackbearreloaded/ProsperoPuzzles`
+   (releases built from now on, not earlier ones).
 2. Fully close ProsperoPuzzles.
 3. Extract `PPSA99006.zip` and upload its complete `PPSA99006` directory to
    `/data/homebrew/`, producing `/data/homebrew/PPSA99006/eboot.bin`. Do not
