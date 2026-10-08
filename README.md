@@ -282,8 +282,8 @@ shown in the library header and Settings, and the release workflow uses it as
 the tag and release name. Do not add a `v` prefix.
 
 To publish the next version, raise `contentVersion` (for example to
-`01.001.000`), pass the local gates, and push to `main`; GitHub Actions tags and
-releases it.
+`01.001.000`), pass the local gates, push to `main`, and push a tag equal to
+`contentVersion`; GitHub Actions builds and releases it.
 
 Keep `PPSA99006`, `conceptId` and `contentId` stable for updates to this title.
 Changing the title ID creates a separate PS5 application with separate saves.

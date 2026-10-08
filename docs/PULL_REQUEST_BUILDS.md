@@ -6,7 +6,7 @@ of ProsperoPuzzles, kept for 14 days, that a reviewer can put on a console befor
 
 ## What a pull request produces
 
-| | Pull request | Push to `main`, tag, manual run |
+| | Pull request | Tag, or a run started by hand |
 | --- | --- | --- |
 | Artifact name | `ProsperoPuzzles-PR<number>-<commit>` | `ProsperoPuzzles-<commit>` |
 | `<commit>` | First seven characters of the pull request's own head commit | The full hash of the built commit |
@@ -25,7 +25,7 @@ Two details are deliberate:
   release it is based on, so the update check and the self-update ([Updates](UPDATES.md))
   behave exactly as they will after the merge. The label is a separate file.
 
-A pull request never publishes a release: only a push to `main` or a version tag does.
+A pull request never publishes a release: only a version tag does.
 
 ## Getting the build
 
@@ -68,8 +68,8 @@ BUILD_LABEL="pacing test 2" make
 
 ## Names and safety
 
-The pull-request name follows the repository's name by itself. The name used for pushes
-and tags, `ProsperoPuzzles-<commit>`, appears twice in the workflow (the upload, and the
+The pull-request name follows the repository's name by itself. The name used for tags
+and runs started by hand, `ProsperoPuzzles-<commit>`, appears twice in the workflow (the upload, and the
 release job's download); rename both together if it ever changes.
 
 Pull-request runs have a read-only token and no secrets, including for forks. Do not move

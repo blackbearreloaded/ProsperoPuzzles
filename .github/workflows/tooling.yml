@@ -84,8 +84,8 @@ jobs:
           fi
           echo "TITLE_ID=$title_id" >> "$GITHUB_ENV"
           echo "CONTENT_VERSION=$content_version" >> "$GITHUB_ENV"
-          # A push to main releases param.json's version once: when no tag for
-          # it exists yet. Bump contentVersion to publish the next release.
+          # Only a version tag releases. The push-to-main case below can no longer
+          # fire: pushes to main do not start this workflow.
           release=false
           if [[ $GITHUB_REF_TYPE == tag ]]; then
             release=true

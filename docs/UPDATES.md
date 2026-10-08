@@ -68,8 +68,8 @@ host.
 | Free space on the app's drive for the ZIP and the unpacked app | A refusal before the download or before unpacking |
 | The network | Nothing is offered |
 
-Updates are published the usual way: a higher `contentVersion` in
-`sce_sys/param.json` on `main` makes the release workflow attach
+Updates are published the usual way: a tag equal to the higher
+`contentVersion` in `sce_sys/param.json` makes the release workflow attach
 `PPSA99006.zip` to a GitHub release, and the catalog lists it once its update
 is merged. Every installed copy that is older then offers it at its next start.
 
