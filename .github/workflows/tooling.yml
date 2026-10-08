@@ -100,7 +100,8 @@ jobs:
           echo "Release this build: $release ($content_version)"
 
       - name: Lint source and metadata
-        run: make lint
+        # clang-tidy stays a local check (make lint); it does not run here.
+        run: LINT_SKIP_TIDY=1 make lint
 
       - name: Run host GoogleTest suite
         run: make test-unit
@@ -124,8 +125,30 @@ jobs:
         if: always()
         run: ccache --show-stats
 
-      - name: Write release checksums
-        run: cd dist && sha256sum "$TITLE_ID.ffpfsc" "$TITLE_ID.zip" > SHA256SUMS
+      - name: Check the ZIP and write release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          # The console only starts an app whose files are open to all, and some tools
+          # keep a ZIP's permissions when unpacking: every entry must be stored as 0777.
+          python3 - "$TITLE_ID" "$CONTENT_VERSION" <<'PY'
+          import json, sys, zipfile
+          title, version = sys.argv[1:3]
+          archive = title + ".zip"
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None, "damaged entry"
+              names = z.namelist()
+              assert all(n.startswith(title + "/") for n in names), "entries outside the app folder"
+              assert title + "/eboot.bin" in names, "no eboot.bin"
+              wrong = [i.filename for i in z.infolist() if (i.external_attr >> 16) & 0o777 != 0o777]
+              assert not wrong, f"entries not stored as 0777: {wrong[:3]}"
+              meta = json.loads(z.read(title + "/sce_sys/param.json"))
+              assert meta["contentVersion"] == version, meta["contentVersion"]
+              print(f"{archive}: {len(names)} entries, all 0777, version {version}")
+          PY
+          sha256sum "$TITLE_ID.ffpfsc" "$TITLE_ID.zip" > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Upload build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
