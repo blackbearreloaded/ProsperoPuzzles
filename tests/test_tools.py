@@ -161,6 +161,48 @@ class ToolTests(unittest.TestCase):
             self.assertIn("/data/homebrew/PPSA12345.ffpkg", result.stdout)
             self.assertIn("no network request was sent", result.stdout)
 
+    def test_pull_request_builds_are_named_and_labelled(self):
+        workflow = (ROOT / ".github/workflows/tooling.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            'echo "artifact=${GITHUB_REPOSITORY##*/}-PR$PR_NUMBER-$short" >> "$GITHUB_OUTPUT"',
+            workflow,
+        )
+        self.assertIn('echo "BUILD_LABEL=PR $PR_NUMBER, $short" >> "$GITHUB_ENV"', workflow)
+        self.assertIn("name: ${{ steps.label.outputs.artifact }}", workflow)
+        # The release job still finds a push's or tag's build under its commit.
+        self.assertIn('--name "ProsperoPuzzles-$GITHUB_SHA"', workflow)
+        self.assertIn('echo "artifact=ProsperoPuzzles-$GITHUB_SHA" >> "$GITHUB_OUTPUT"', workflow)
+        # A contributor's code is never built with write access or secrets.
+        self.assertNotIn("pull_request_target:", workflow)
+        build = (ROOT / "tools/build.sh").read_text(encoding="utf-8")
+        self.assertIn('> "$app/build-label.txt"', build)
+        self.assertIn("{1,40}$", build)
+        self.assertLess(build.index("BUILD_LABEL must be"), build.index("ninja_run\n\napp="))
+
+    def test_build_label_is_checked_before_anything_is_built(self):
+        build = (ROOT / "tools/build.sh").read_text(encoding="utf-8")
+        start = build.index("if [[ -n ${BUILD_LABEL:-} ]]; then")
+        check = build[start : build.index("\nfi\n", start) + 4]
+        accepted = ["PR 12, 1a2b3c4", "pacing test 2", "a", "x" * 40, "v1.0_rc#3-b"]
+        refused = ["x" * 41, "PR 12; rm", "a/b", "$(id)", "two\nlines", "caf\u00e9", "a\tb"]
+        for label, expected in [(l, 0) for l in accepted] + [(l, 2) for l in refused]:
+            environment = os.environ.copy()
+            environment["BUILD_LABEL"] = label
+            result = subprocess.run(
+                ["bash", "-c", "set -euo pipefail\n" + check],
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, expected, repr(label))
+        environment = os.environ.copy()
+        environment.pop("BUILD_LABEL", None)
+        result = subprocess.run(
+            ["bash", "-c", "set -euo pipefail\n" + check], env=environment, check=False
+        )
+        self.assertEqual(result.returncode, 0)
+
     def test_native_writer_anchors_relro_and_checks_load_congruence(self):
         source = (ROOT / "tooling/native/sce_module_writer.cpp").read_text(
             encoding="utf-8"

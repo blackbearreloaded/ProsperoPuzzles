@@ -172,6 +172,9 @@ The [Build workflow](.github/workflows/tooling.yml) runs on every push to
 6. writes `SHA256SUMS` for both files and uploads all three as the Actions
    artifact.
 
+Every pull request gets an installable build named by its number and commit: see
+[Pull-request builds](docs/PULL_REQUEST_BUILDS.md).
+
 When a push to `main` carries a `contentVersion` that has no tag yet, the
 workflow creates that tag on the tested commit and publishes a GitHub Release
 with the `.ffpfsc` image, the app-folder `.zip` and `SHA256SUMS`. Pushes that
@@ -300,6 +303,7 @@ See [Configuration](docs/CONFIGURATION.md).
 | [Storage and filesystem access](docs/STORAGE.md) | Where saves live, Lapy elevation, migration |
 | [Updates](docs/UPDATES.md) | The update check, the self-update and how it was validated |
 | [Testing](docs/TESTING.md) | Host test boundaries and commands |
+| [Pull-request builds](docs/PULL_REQUEST_BUILDS.md) | An installable build per pull request: its artifact name, its label file, how to get it |
 | [Deployment](docs/DEPLOYMENT.md) | Safe folder and image staging |
 | [Package formats](docs/FFPKG.md) | Folder, `.ffpkg` and `.ffpfsc` outputs |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common build, launch and runtime failures |
