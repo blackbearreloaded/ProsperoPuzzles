@@ -133,11 +133,11 @@ Nothing is installed globally by the project build. See
 ## Build
 
 ```bash
-# Production release image; also assembles the complete title folder.
-make ffpfsc
-
-# Faster folder-only development build.
+# The app folder and its ZIP: what CI and releases build.
 make
+
+# Optional, local only: also pack a compressed image.
+make ffpfsc
 ```
 
 Outputs are written to:
@@ -145,7 +145,7 @@ Outputs are written to:
 ```text
 dist/PPSA99006/           complete title folder
 dist/PPSA99006.zip        folder archive
-dist/PPSA99006.ffpfsc     compressed installation image
+dist/PPSA99006.ffpfsc     compressed image (only with make ffpfsc)
 ```
 
 Useful development gates are:
@@ -160,36 +160,34 @@ make audio-check     # validate sound effects and music
 
 ## GitHub Actions and releases
 
-The [Build workflow](.github/workflows/tooling.yml) runs on every push to
-`main`, pull request, version tag, and manual dispatch. It:
+The [Build workflow](.github/workflows/tooling.yml) runs on every pull request,
+version tag, and manual dispatch (pushes to `main` build nothing). It:
 
 1. installs the public Linux/PS5 build prerequisites;
 2. validates the title ID and `contentVersion` in `sce_sys/param.json`;
 3. runs lint, GoogleTest and the integration tests;
 4. independently reproduces and verifies `runtime/libc.prx`;
-5. builds `PPSA99006.ffpfsc` and archives the complete app folder as
-   `PPSA99006.zip`; and
-6. writes `SHA256SUMS` for both files and uploads all three as the Actions
-   artifact.
+5. builds the app folder and archives it as `PPSA99006.zip`, every entry
+   stored as 0777; and
+6. writes `SHA256SUMS` for the ZIP and uploads both as the Actions artifact.
 
 Every pull request gets an installable build named by its number and commit: see
 [Pull-request builds](docs/PULL_REQUEST_BUILDS.md).
 
-When a push to `main` carries a `contentVersion` that has no tag yet, the
-workflow creates that tag on the tested commit and publishes a GitHub Release
-with the `.ffpfsc` image, the app-folder `.zip` and `SHA256SUMS`. Pushes that
-keep the same version only build and test.
+Pushing a tag equal to `contentVersion` publishes a GitHub Release with the
+app-folder `.zip` and `SHA256SUMS`, built from the tagged commit. CI and
+releases no longer carry the `.ffpfsc` image; `make ffpfsc` still builds one
+locally.
 
 ## Install or update
 
-1. Download either `PPSA99006.ffpfsc` or `PPSA99006.zip` from the latest GitHub
-   release and verify it with `SHA256SUMS`.
+1. Download `PPSA99006.zip` from the latest GitHub release and verify it with
+   `SHA256SUMS`.
 2. Fully close ProsperoPuzzles.
-3. For the image form, place `PPSA99006.ffpfsc` in the directory scanned by
-   ShadowMountPlus, replacing any older copy. For the folder form, extract
-   `PPSA99006.zip` and upload its complete `PPSA99006` directory to
+3. Extract `PPSA99006.zip` and upload its complete `PPSA99006` directory to
    `/data/homebrew/`, producing `/data/homebrew/PPSA99006/eboot.bin`. Do not
-   upload the ZIP itself.
+   upload the ZIP itself. (An image you built yourself with `make ffpfsc` goes
+   in the directory scanned by ShadowMountPlus instead.)
 4. Restart ShadowMountPlus cleanly or restart the PS5, then wait for
    ShadowMountPlus to rediscover the title before launching it.
 5. Launch ProsperoPuzzles and confirm the version in the library header or at

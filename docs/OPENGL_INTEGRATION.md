@@ -20,7 +20,7 @@ v1.0.0 is one SDK for every display: the app picks 1920x1080, 2560x1440 or
 setting restarts EGL to switch (`restart_display` in `src/main.cpp`), rebuilding
 the batch renderer, font atlases and previews. It includes the presentation
 fix `7d7fecb` that v0.3.0 lacked. CI and console builds use the same pinned
-release, so the published `.ffpfsc` and folder ZIP match what was tested.
+release, so the published folder ZIP matches what was tested.
 
 `tools/prepare-opengl.sh` verifies the selected SDK's manifest, points
 `.deps/ps5-opengl/current` at it, and writes the linker group

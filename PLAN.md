@@ -949,7 +949,7 @@ Each milestone has host exit criteria. Some also have a single hardware run (R*n
    - host unit tests
    - `libc` reproduction
    - **a native build that fetches the pinned SDK release**, if D4 settled on a published asset; otherwise releases are built locally and uploaded with `gh release`
-   - on a tag matching `contentVersion`, a release with the ZIP, the `.ffpfsc` image and `SHA256SUMS`
+   - on a tag matching `contentVersion`, a release with the ZIP and `SHA256SUMS`
 7. Switch to the release title (PPSA99030), freeze the candidate and run the final evidence ladder, then **tag `01.000.000`**.
 
 **A9:** the soak and cycles pass on the frozen candidate, and the release assets are verified: they download and their checksums match.

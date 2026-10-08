@@ -33,8 +33,8 @@ A pull request never publishes a release: only a push to `main` or a version tag
    **Actions**).
 2. Download the artifact named `ProsperoPuzzles-PR<number>-<commit>` from the run's
    **Artifacts** list. GitHub requires a signed-in account for this.
-3. Unpack it: it holds `PPSA99006.zip` (the app folder), `PPSA99006.ffpfsc` (the image)
-   and `SHA256SUMS`. Check the files with `sha256sum -c SHA256SUMS`, then install as
+3. Unpack it: it holds `PPSA99006.zip` (the app folder) and `SHA256SUMS`. Check the
+   ZIP with `sha256sum -c SHA256SUMS`, then install as
    described in [Deployment](DEPLOYMENT.md) or under "Install or update" in the
    [README](../README.md).
 

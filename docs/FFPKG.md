@@ -5,8 +5,9 @@ Every application or package build creates and validates
 `-OutputFormat` selections:
 
 All formats remain available for local development. Tagged GitHub Releases
-attach the complete compressed `.ffpfsc` image, a ZIP of the validated
-directory-style application, and their shared `SHA256SUMS`.
+and every CI build attach a ZIP of the validated directory-style application
+and its `SHA256SUMS`, and nothing else: the in-app update installs from the
+ZIP, and the images are a local option.
 
 | Make target / selection | Additional output | Packaging tool |
 | --- | --- | --- |
@@ -22,7 +23,7 @@ make ffpfsc
 make packages
 ```
 
-The release workflow uses Python's standard-library `zipfile` module to archive
+Every build uses Python's standard-library `zipfile` module to archive
 `dist/<TITLE_ID>/` as `<TITLE_ID>.zip`. The ZIP is a distribution convenience,
 not another console filesystem format; extract it before directory deployment.
 
