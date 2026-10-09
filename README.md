@@ -135,9 +135,6 @@ Nothing is installed globally by the project build. See
 ```bash
 # The app folder and its ZIP: what CI and releases build.
 make
-
-# Optional, local only: also pack a compressed image.
-make ffpfsc
 ```
 
 Outputs are written to:
@@ -145,7 +142,6 @@ Outputs are written to:
 ```text
 dist/PPSA99006/           complete title folder
 dist/PPSA99006.zip        folder archive
-dist/PPSA99006.ffpfsc     compressed image (only with make ffpfsc)
 ```
 
 Useful development gates are:
@@ -175,9 +171,13 @@ Every pull request gets an installable build named by its number and commit: see
 [Pull-request builds](docs/PULL_REQUEST_BUILDS.md).
 
 Pushing a tag equal to `contentVersion` publishes a GitHub Release with the
-app-folder `.zip` and `SHA256SUMS`, built from the tagged commit. CI and
-releases no longer carry the `.ffpfsc` image; `make ffpfsc` still builds one
-locally.
+app-folder `.zip` and `SHA256SUMS`, built from the tagged commit. That is the
+only way a release is made: the workflow builds, attests, and publishes the
+two files, and files are not attached by hand. If the tag has no release yet,
+the workflow creates it; if a release exists without a ZIP (notes written in
+advance, or a draft), it adds the two files and leaves the title and notes
+alone; if a release already has a ZIP, nothing is replaced and the run ends
+with a warning.
 
 ## Install or update
 
@@ -189,16 +189,17 @@ locally.
 2. Fully close ProsperoPuzzles.
 3. Extract `PPSA99006.zip` and upload its complete `PPSA99006` directory to
    `/data/homebrew/`, producing `/data/homebrew/PPSA99006/eboot.bin`. Do not
-   upload the ZIP itself. (An image you built yourself with `make ffpfsc` goes
-   in the directory scanned by ShadowMountPlus instead.)
+   upload the ZIP itself. If a `PPSA99006.ffpfsc` from an older version is
+   still in a directory scanned by ShadowMountPlus, delete it first: the
+   image form is no longer built, and a folder and an image of the same title
+   must not both be there.
 4. Restart ShadowMountPlus cleanly or restart the PS5, then wait for
    ShadowMountPlus to rediscover the title before launching it.
 5. Launch ProsperoPuzzles and confirm the version in the library header or at
    the bottom of Settings.
 
 From the next release on, an installed folder copy offers new versions by
-itself ([Updates](docs/UPDATES.md)); the steps above stay valid, and are the
-way to update an image install.
+itself ([Updates](docs/UPDATES.md)); the steps above stay valid.
 
 Saved games, records and settings are in `/data/prosperopuzzles` and are not
 touched by an update or a reinstall. The home-screen artwork and selection
@@ -214,12 +215,7 @@ make deploy PS5_HOST=192.168.1.100
 
 Fully close ProsperoPuzzles before deploying. The deployer writes only the
 current title below `/data/homebrew`, uploads through temporary names, and
-publishes `eboot.bin` and `sce_sys/param.json` last. To test the packaged form
-instead:
-
-```bash
-make deploy PS5_HOST=192.168.1.100 DEPLOY_FORMAT=ffpfsc
-```
+publishes `eboot.bin` and `sce_sys/param.json` last.
 
 ProsperoPuzzles never changes PS5 system settings or configures a loader. See
 [Deployment](docs/DEPLOYMENT.md) for the development loop and removal.
@@ -306,7 +302,7 @@ See [Configuration](docs/CONFIGURATION.md).
 | [Testing](docs/TESTING.md) | Host test boundaries and commands |
 | [Pull-request builds](docs/PULL_REQUEST_BUILDS.md) | An installable build per pull request: its artifact name, its label file, how to get it |
 | [Deployment](docs/DEPLOYMENT.md) | Safe folder and image staging |
-| [Package formats](docs/FFPKG.md) | Folder, `.ffpkg` and `.ffpfsc` outputs |
+| [Package formats](docs/FFPKG.md) | The folder and its ZIP; the local `.ffpkg` image |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common build, launch and runtime failures |
 | [Platform notes](docs/PLATFORM_NOTES.md) | PS5 filesystem, loader and presentation constraints |
 | [Runtime shim](docs/RUNTIME_SHIM.md) | Clean-room `libc.prx` scope and reproduction |
