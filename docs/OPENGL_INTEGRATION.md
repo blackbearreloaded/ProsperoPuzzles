@@ -36,7 +36,7 @@ release, so the published folder ZIP matches what was tested.
 
 | File | Change | Why |
 | --- | --- | --- |
-| `Makefile` | Always adds `GL_GLEXT_PROTOTYPES=1`, the SDK include path, the link group and the AGC import stubs to the `APP_*` variables; `app`/`ffpkg` depend on `opengl` | Every output links the same runtime |
+| `Makefile` | Always adds `GL_GLEXT_PROTOTYPES=1`, the SDK include path, the link group and the AGC import stubs to the `APP_*` variables; `app` depends on `opengl` | Every output links the same runtime |
 | `tools/build.sh` | `APP_IMPORT_STUBS`: extra `.so` import libraries are linked and passed to the converter with `--stub` | `libSceAgc`/`libSceAgcDriver` are not in the payload SDK |
 | `tools/build.sh` | Links with `--wrap` for `malloc`, `calloc`, `realloc`, `free`, `posix_memalign`, `malloc_usable_size` when `src/runtime/app_heap.c` exists | Routes allocations into the fixed OpenGL heap |
 | `tools/build.sh` | Builds `src/third_party/**` with `-w` | Vendored code is compiled as published |

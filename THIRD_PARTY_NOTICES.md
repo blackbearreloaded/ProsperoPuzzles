@@ -22,8 +22,8 @@ ProsperoPuzzles exists thanks to the maintainers and contributors of:
 - [curl](https://curl.se/), [OpenSSL](https://www.openssl.org/) and
   [miniz](https://github.com/richgel999/miniz) for the update check and the
   self-update;
-- [UFS2Tool](https://github.com/SvenGDK/UFS2Tool), LLVM/Clang, Python, zlib and
-  GoogleTest for build, packaging and validation tooling.
+- LLVM/Clang, Python, zlib and GoogleTest for build, packaging and validation
+  tooling.
 
 The sound effects were generated for this project with ElevenLabs Sound
 Effects. The original artwork, soundtrack and selection music are distributed
@@ -164,14 +164,6 @@ release `v0.40.2`, verifies its published SHA-256, and extracts only the
 `target/user/homebrew` prefix under ignored `.deps/pacbrew/`. It does not
 replace the pinned SDK or install files globally. PacBrew recipes and every
 linked third-party library retain their upstream licenses.
-
-## Optional UFS2Tool dependency
-
-When `.ffpkg` output is requested, the platform bootstrapper fetches
-[SvenGDK/UFS2Tool](https://github.com/SvenGDK/UFS2Tool) at commit
-`b5307a60d5b4e3a68ba680e0e33cfadf05017c77` into the ignored
-`.deps/UFS2Tool` cache and builds it with the host .NET SDK. UFS2Tool is
-BSD-2-Clause software and is not distributed by this repository.
 
 ## Independently authored runtime shim
 

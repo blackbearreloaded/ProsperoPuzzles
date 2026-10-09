@@ -124,8 +124,8 @@ sudo apt install curl git make pkg-config python3 python3-venv tar unzip wget \
 make doctor
 ```
 
-The build downloads and verifies the public PS5 Payload SDK, zlib, GoogleTest,
-the ps5-opengl SDK and packaging tools below ignored `.deps/` directories.
+The build downloads and verifies the public PS5 Payload SDK, zlib, GoogleTest
+and the ps5-opengl SDK below ignored `.deps/` directories.
 Nothing is installed globally by the project build. See
 [Getting started](docs/GETTING_STARTED.md) and
 [Native tooling](docs/NATIVE_TOOLING.md) for clean-machine setup details.
@@ -301,8 +301,8 @@ See [Configuration](docs/CONFIGURATION.md).
 | [Updates](docs/UPDATES.md) | The update check, the self-update and how it was validated |
 | [Testing](docs/TESTING.md) | Host test boundaries and commands |
 | [Pull-request builds](docs/PULL_REQUEST_BUILDS.md) | An installable build per pull request: its artifact name, its label file, how to get it |
-| [Deployment](docs/DEPLOYMENT.md) | Safe folder and image staging |
-| [Package formats](docs/FFPKG.md) | The folder and its ZIP; the local `.ffpkg` image |
+| [Deployment](docs/DEPLOYMENT.md) | Safe folder staging |
+| [Release ZIP](docs/RELEASE_ZIP.md) | The app folder and its ZIP, the only outputs |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common build, launch and runtime failures |
 | [Platform notes](docs/PLATFORM_NOTES.md) | PS5 filesystem, loader and presentation constraints |
 | [Runtime shim](docs/RUNTIME_SHIM.md) | Clean-room `libc.prx` scope and reproduction |

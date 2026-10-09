@@ -140,7 +140,7 @@ jobs:
         run: cd runtime && sha256sum -c libc.prx.sha256
 
       # The ZIP is the one release format: the in-app update and ProsperoStore install
-      # from it. The compressed image stays a local option and is not built here.
+      # from it. No image is built, here or by a local target.
       - name: Build the release folder and ZIP
         run: make app
 
