@@ -112,8 +112,8 @@ is not linked into any PS5 application, runtime, or package artifact.
 ## PS5-Lapy-JB-Daemon helper
 
 The build fetches
-[mpereiraesaa's PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon)
-at commit `54a095c0f19161825e845daa760a03b446e654fa`, invokes its unmodified
+[BlackBearReloaded's fork of PS5-Lapy-JB-Daemon](https://github.com/blackbearreloaded/PS5-Lapy-JB-Daemon)
+at commit `57fcc19b7f57e46c823d6f2a6c6233ebf3288079`, invokes its unmodified
 `owned-helper` target for title `PPSA99006` and packages the generated helper
 (`lapy.elf`, `lapy-manifest.json`) with Lapy's MIT license
 (`licenses/Lapy-MIT.txt`). The shared protocol header published upstream is
@@ -127,7 +127,7 @@ source is copied or modified here.
 
 The helper build also uses the pinned `ps5log/1` header from
 [mpereiraesaa/ps5-agc-gears](https://github.com/mpereiraesaa/ps5-agc-gears/tree/1ae1f9182abd2770c131b97419034fb85173c2dc/native/ps5log),
-GPL-3.0-or-later, and the official PS5 Payload SDK v0.40. Those build inputs
+GPL-3.0-or-later, and the official PS5 Payload SDK v0.42. Those build inputs
 remain under ignored `.deps/lapy/`; the application toolchain remains the
 separately pinned Payload SDK v0.42.
 
