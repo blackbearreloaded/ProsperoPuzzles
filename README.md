@@ -6,7 +6,7 @@
 
 > **Latest release: [01.000.010](https://github.com/blackbearreloaded/ProsperoPuzzles/releases/tag/01.000.010).**
 > 50 puzzle games, best-score records, sound effects, a shuffled soundtrack and
-> home-screen selection music, now on the ps5-opengl SDK 1.0.0.
+> home-screen selection music, now on the ps5-opengl SDK 1.0.2.
 > Please report problems through [GitHub issues](https://github.com/blackbearreloaded/ProsperoPuzzles/issues).
 
 <p align="center">
